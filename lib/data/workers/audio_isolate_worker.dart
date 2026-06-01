@@ -163,9 +163,11 @@ void _processBuffer(
 }
 
 TunerState _stateFromCents(double cents) {
-  if (cents.abs() <= AudioConstants.inTuneThresholdCents)
+  if (cents.abs() <= AudioConstants.inTuneThresholdCents) {
     return TunerState.inTune;
-  if (cents.abs() <= AudioConstants.nearTuneThresholdCents)
+  }
+  if (cents.abs() <= AudioConstants.nearTuneThresholdCents) {
     return TunerState.nearTune;
+  }
   return cents < 0 ? TunerState.tooLow : TunerState.tooHigh;
 }

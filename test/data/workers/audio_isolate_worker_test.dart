@@ -6,7 +6,6 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:harmonix_tune/core/constants/audio_constants.dart';
 import 'package:harmonix_tune/data/workers/audio_isolate_worker.dart';
-import 'package:harmonix_tune/domain/entities/pitch_result.dart';
 import 'package:harmonix_tune/domain/entities/tuning_configuration.dart';
 import 'package:harmonix_tune/domain/enums/tuner_state.dart';
 
