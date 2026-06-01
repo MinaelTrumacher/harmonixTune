@@ -48,15 +48,24 @@ class PitchResult {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is PitchResult &&
-        other.frequencyHz == frequencyHz &&
         other.noteName == noteName &&
         other.octave == octave &&
-        other.centsDeviation == centsDeviation &&
-        other.confidence == confidence &&
-        other.state == state;
+        other.state == state &&
+        // Comparaison à la précision affichée (1 décimale) — deux résultats
+        // dont les valeurs affichées sont identiques sont traités comme égaux,
+        // ce qui permet à BlocBuilder de sauter les rebuilds inutiles.
+        other.frequencyHz.toStringAsFixed(1) == frequencyHz.toStringAsFixed(1) &&
+        other.centsDeviation.toStringAsFixed(1) == centsDeviation.toStringAsFixed(1) &&
+        other.confidence == confidence;
   }
 
   @override
   int get hashCode => Object.hash(
-        frequencyHz, noteName, octave, centsDeviation, confidence, state);
+        noteName,
+        octave,
+        state,
+        frequencyHz.toStringAsFixed(1),
+        centsDeviation.toStringAsFixed(1),
+        confidence,
+      );
 }

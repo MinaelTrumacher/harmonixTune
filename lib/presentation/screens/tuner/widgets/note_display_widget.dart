@@ -12,6 +12,17 @@ class NoteDisplayWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TunerBloc, TunerDisplayState>(
+      buildWhen: (prev, next) {
+        if (prev.runtimeType != next.runtimeType) return true;
+        if (prev is! TunerListening || next is! TunerListening) return true;
+        final p = prev.pitch;
+        final n = next.pitch;
+        // Rebuild uniquement si une valeur affichée change.
+        return p.noteName != n.noteName ||
+            p.octave != n.octave ||
+            p.state != n.state ||
+            p.frequencyHz.toStringAsFixed(1) != n.frequencyHz.toStringAsFixed(1);
+      },
       builder: (_, state) {
         final noteName = state is TunerListening ? state.pitch.noteName : '--';
         final octave   = state is TunerListening ? '${state.pitch.octave}' : '';

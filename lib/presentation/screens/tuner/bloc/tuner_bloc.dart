@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/audio_constants.dart';
@@ -11,8 +12,10 @@ import '../../../../domain/enums/tuner_state.dart';
 import 'tuner_event.dart';
 import 'tuner_state.dart';
 
-class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
+class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
+    with WidgetsBindingObserver {
   TunerBloc() : super(const TunerInitial()) {
+    WidgetsBinding.instance.addObserver(this);
     on<StartTuner>(_onStart);
     on<StopTuner>(_onStop);
     on<PitchReceived>(_onPitchReceived);
@@ -47,8 +50,12 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
     await _subscription?.cancel();
     _subscription = null;
     _subscription = _mockStream().listen(
-      (s) => add(PitchReceived(s.frequencyHz, s.centsDeviation, confidence: 0.95)),
-      onError: (Object error, StackTrace stack) => add(const StopTuner()),
+      (s) {
+        if (!isClosed) add(PitchReceived(s.frequencyHz, s.centsDeviation, confidence: 0.95));
+      },
+      onError: (Object error, StackTrace stack) {
+        if (!isClosed) add(const StopTuner());
+      },
       cancelOnError: true,
     );
   }
@@ -146,8 +153,25 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
     );
   }
 
+  // ── Cycle de vie app ─────────────────────────────────────────────────────
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // App en arrière-plan : couper le stream (Green IT + RGPD Phase 9).
+      _subscription?.cancel();
+      _subscription = null;
+    } else if (state == AppLifecycleState.resumed &&
+        this.state is TunerListening) {
+      // this.state = état BLoC courant (TunerListening/TunerInitial)
+      // state    = AppLifecycleState reçu en paramètre
+      // Retour au premier plan : relancer uniquement si on était en écoute.
+      _subscribe();
+    }
+  }
+
   @override
   Future<void> close() async {
+    WidgetsBinding.instance.removeObserver(this);
     await _subscription?.cancel();
     return super.close();
   }

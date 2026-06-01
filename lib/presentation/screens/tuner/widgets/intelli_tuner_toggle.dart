@@ -13,6 +13,11 @@ class IntelliTunerToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TunerBloc, TunerDisplayState>(
+      buildWhen: (prev, next) {
+        // Rebuild uniquement si l'état du toggle change.
+        return (prev is TunerListening && prev.intelliTunerEnabled) !=
+               (next is TunerListening && next.intelliTunerEnabled);
+      },
       builder: (_, state) {
         final enabled = state is TunerListening && state.intelliTunerEnabled;
 

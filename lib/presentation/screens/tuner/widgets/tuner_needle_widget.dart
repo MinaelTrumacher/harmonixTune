@@ -92,15 +92,23 @@ class _TunerNeedleWidgetState extends State<TunerNeedleWidget>
 // ── Painter ────────────────────────────────────────────────────────────────
 
 class _NeedlePainter extends CustomPainter {
+  // PF-08 : initialisés dans la liste d'initialisation — sémantique claire,
+  // pas de lazy-init (late final) qui masquait le lien avec needleColor.
   _NeedlePainter({
     required this.displayAngle,
     required this.needleColor,
     required this.tunerState,
-  });
+  })  : _needleLinePaint = Paint()
+          ..color = needleColor
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round,
+        _needleTipPaint = Paint()..color = needleColor;
 
   final double displayAngle;
   final Color needleColor;
   final TunerState tunerState;
+  final Paint _needleLinePaint;
+  final Paint _needleTipPaint;
 
   // Paints statiques — propriétés constantes, créés une seule fois pour toutes les instances.
   static final _arcPaint = Paint()
@@ -126,13 +134,16 @@ class _NeedlePainter extends CustomPainter {
   static final _pivot2 = Paint()..color = AppColors.divider;
   static final _pivot3 = Paint()..color = AppColors.textSecondary;
 
-  // Paints dynamiques — dépendent de needleColor, mis à jour via shouldRepaint.
-  late final Paint _needleLinePaint = Paint()
-    ..color = needleColor
-    ..strokeWidth = 2
-    ..strokeCap = StrokeCap.round;
-
-  late final Paint _needleTipPaint = Paint()..color = needleColor;
+  // PF-07 : (cos, sin) des 11 graduations précomputés une seule fois.
+  // Élimine 22 appels trig par frame — remplacés par des multiplications.
+  static final List<({double cosA, double sinA, bool isMajor})> _gradData = [
+    for (int i = -50; i <= 50; i += 10)
+      (
+        cosA: cos((3 * pi / 2) + (i / 50.0) * (pi / 2)),
+        sinA: sin((3 * pi / 2) + (i / 50.0) * (pi / 2)),
+        isMajor: i % 20 == 0,
+      ),
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -169,16 +180,14 @@ class _NeedlePainter extends CustomPainter {
     );
   }
 
-  // Graduations toutes les 10 cents
+  // Graduations toutes les 10 cents — (cos,sin) issus du cache statique _gradData
   void _drawGraduations(Canvas canvas, Offset center, double radius) {
-    for (int i = -50; i <= 50; i += 10) {
-      final a = (3 * pi / 2) + (i / 50.0) * (pi / 2);
-      final isMajor = i % 20 == 0;
-      final inner = radius - (isMajor ? 14.0 : 8.0);
+    for (final g in _gradData) {
+      final inner = radius - (g.isMajor ? 14.0 : 8.0);
       canvas.drawLine(
-        Offset(center.dx + inner * cos(a), center.dy + inner * sin(a)),
-        Offset(center.dx + radius * cos(a), center.dy + radius * sin(a)),
-        isMajor ? _majorGradPaint : _minorGradPaint,
+        Offset(center.dx + inner  * g.cosA, center.dy + inner  * g.sinA),
+        Offset(center.dx + radius * g.cosA, center.dy + radius * g.sinA),
+        g.isMajor ? _majorGradPaint : _minorGradPaint,
       );
     }
   }

@@ -13,6 +13,12 @@ class StringSelectorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TunerBloc, TunerDisplayState>(
+      buildWhen: (prev, next) {
+        if (prev.runtimeType != next.runtimeType) return true;
+        if (prev is! TunerListening || next is! TunerListening) return true;
+        // TuningConfiguration.== est correct — rebuild uniquement si la config change.
+        return prev.config != next.config;
+      },
       builder: (_, state) {
         final config   = state is TunerListening ? state.config : null;
         final strings  = config?.stringNotes ?? const ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];

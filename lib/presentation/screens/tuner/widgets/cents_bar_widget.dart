@@ -53,12 +53,21 @@ class _CentsBarWidgetState extends State<CentsBarWidget>
   Widget build(BuildContext context) {
     return BlocListener<TunerBloc, TunerDisplayState>(
       listener: (_, state) {
-        if (state is TunerListening) {
-          _targetCents = state.pitch.centsDeviation.clamp(-50.0, 50.0);
-          _tunerState = state.pitch.state;
+        final newTunerState =
+            state is TunerListening ? state.pitch.state : TunerState.silent;
+        final newTarget = state is TunerListening
+            ? state.pitch.centsDeviation.clamp(-50.0, 50.0)
+            : 0.0;
+        // setState forcé si l'état fonctionnel change — symétrique avec
+        // TunerNeedleWidget (F-02) : la bille ne peut pas rester verte
+        // quand l'utilisateur arrête de jouer, bille centrée, delta ≈ 0.
+        if (_tunerState != newTunerState) {
+          setState(() {
+            _tunerState = newTunerState;
+            _targetCents = newTarget;
+          });
         } else {
-          _targetCents = 0.0;
-          _tunerState = TunerState.silent;
+          _targetCents = newTarget;
         }
       },
       child: RepaintBoundary(
@@ -93,7 +102,9 @@ class _CentsBarPainter extends CustomPainter {
     Color(0x99F06050), // AppColors.tooHigh @ alpha 0.6
   ];
   static Shader? _barShader;
-  static double _cachedBarWidth = -1;
+  static Paint?  _barPaint;
+  static double  _cachedBarWidth  = -1;
+  static double  _cachedBarHeight = -1;
 
   // Paints statiques — jamais modifiés après init.
   static final _centerLinePaint = Paint()
@@ -114,17 +125,21 @@ class _CentsBarPainter extends CustomPainter {
     final barWidth = size.width - 2 * ballRadius;
 
     // ── Gradient bar ─────────────────────────────────────────────────────
-    if (barWidth != _cachedBarWidth) {
+    // Shader et Paint recréés uniquement si la taille du widget change.
+    // barY dépend de size.height → les deux dimensions sont dans la clé.
+    if (barWidth != _cachedBarWidth || size.height != _cachedBarHeight) {
       _barShader = const LinearGradient(colors: _gradientColors)
           .createShader(Rect.fromLTWH(barLeft, barY - 2, barWidth, 4));
-      _cachedBarWidth = barWidth;
+      _barPaint = Paint()..shader = _barShader;
+      _cachedBarWidth  = barWidth;
+      _cachedBarHeight = size.height;
     }
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(barLeft, barY - 2, barWidth, 4),
         const Radius.circular(2),
       ),
-      Paint()..shader = _barShader,
+      _barPaint!,
     );
 
     // ── Marque centrale ───────────────────────────────────────────────────

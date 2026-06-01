@@ -16,6 +16,14 @@ import 'widgets/string_selector_widget.dart';
 import 'widgets/tuner_needle_widget.dart';
 import 'widgets/tuning_preset_chip.dart';
 
+// Clé de comparaison pour le buildWhen du label de cents.
+// Retourne la chaîne affichée — rebuild uniquement si elle change.
+String _centsLabel(TunerDisplayState state) {
+  if (state is! TunerListening) return '';
+  final cents = state.pitch.centsDeviation;
+  return cents.abs() < 0.5 ? 'tune' : cents.toStringAsFixed(1);
+}
+
 class TunerScreen extends StatelessWidget {
   const TunerScreen({super.key});
 
@@ -85,20 +93,21 @@ class _TunerView extends StatelessWidget {
                 ),
                 const Gap(6),
                 BlocBuilder<TunerBloc, TunerDisplayState>(
+                  buildWhen: (prev, next) {
+                    // Rebuild uniquement si le texte affiché change.
+                    return _centsLabel(prev) != _centsLabel(next);
+                  },
                   builder: (_, state) {
-                    if (state is! TunerListening) {
-                      return const SizedBox.shrink();
-                    }
+                    if (state is! TunerListening) return const SizedBox.shrink();
                     final cents = state.pitch.centsDeviation;
-                    final label = cents.abs() < 0.5
-                        ? '✓  IN TUNE'
-                        : '${cents > 0 ? '+' : ''}${cents.toStringAsFixed(1)} cents';
-                    final color = cents.abs() < 0.5
-                        ? AppColors.inTune
-                        : AppColors.textSecondary;
+                    final isInTune = cents.abs() < 0.5;
                     return Text(
-                      label,
-                      style: AppTextStyles.labelSmall.copyWith(color: color),
+                      isInTune
+                          ? '✓  IN TUNE'
+                          : '${cents > 0 ? '+' : ''}${cents.toStringAsFixed(1)} cents',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: isInTune ? AppColors.inTune : AppColors.textSecondary,
+                      ),
                     );
                   },
                 ),
