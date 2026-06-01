@@ -26,3 +26,12 @@ final class TunerListening extends TunerDisplayState {
   @override
   List<Object?> get props => [pitch, config, intelliTunerEnabled];
 }
+
+final class TunerPermissionDeniedState extends TunerDisplayState {
+  const TunerPermissionDeniedState({required this.isPermanent});
+
+  final bool isPermanent;
+
+  @override
+  List<Object?> get props => [isPermanent];
+}

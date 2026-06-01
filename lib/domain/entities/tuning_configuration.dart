@@ -9,6 +9,7 @@ class TuningConfiguration {
     this.stringNotes = const ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
     this.targetString,
     this.instrumentType = InstrumentType.guitar,
+    this.intelliTunerActive = false,
   });
 
   final double referencePitchHz;
@@ -16,11 +17,11 @@ class TuningConfiguration {
   final List<String> stringNotes;
   final String? targetString;
   final InstrumentType instrumentType;
+  // Indique au worker d'activer le filtre IIR sur la fréquence de targetString.
+  final bool intelliTunerActive;
 
   static const TuningConfiguration standard = TuningConfiguration();
 
-  // clearTargetString = true → remet targetString à null (mode AUTO)
-  // Remplace le pattern sentinel Object? pour éviter le cast non sécurisé.
   TuningConfiguration copyWith({
     double? referencePitchHz,
     SweeteningStrategy? sweetening,
@@ -28,15 +29,16 @@ class TuningConfiguration {
     String? targetString,
     bool clearTargetString = false,
     InstrumentType? instrumentType,
+    bool? intelliTunerActive,
   }) {
     return TuningConfiguration(
       referencePitchHz: referencePitchHz ?? this.referencePitchHz,
       sweetening: sweetening ?? this.sweetening,
       stringNotes: stringNotes ?? this.stringNotes,
-      targetString: clearTargetString
-          ? null
-          : (targetString ?? this.targetString),
+      targetString:
+          clearTargetString ? null : (targetString ?? this.targetString),
       instrumentType: instrumentType ?? this.instrumentType,
+      intelliTunerActive: intelliTunerActive ?? this.intelliTunerActive,
     );
   }
 
@@ -48,6 +50,7 @@ class TuningConfiguration {
     if (other.sweetening != sweetening) return false;
     if (other.targetString != targetString) return false;
     if (other.instrumentType != instrumentType) return false;
+    if (other.intelliTunerActive != intelliTunerActive) return false;
     if (other.stringNotes.length != stringNotes.length) return false;
     for (int i = 0; i < stringNotes.length; i++) {
       if (other.stringNotes[i] != stringNotes[i]) return false;
@@ -57,10 +60,11 @@ class TuningConfiguration {
 
   @override
   int get hashCode => Object.hash(
-    referencePitchHz,
-    sweetening,
-    targetString,
-    instrumentType,
-    Object.hashAll(stringNotes),
-  );
+        referencePitchHz,
+        sweetening,
+        targetString,
+        instrumentType,
+        intelliTunerActive,
+        Object.hashAll(stringNotes),
+      );
 }

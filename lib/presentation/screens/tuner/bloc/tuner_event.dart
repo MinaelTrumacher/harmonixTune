@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../../domain/entities/pitch_result.dart';
 import '../../../../domain/entities/tuning_configuration.dart';
 
 sealed class TunerEvent extends Equatable {
@@ -16,18 +17,10 @@ final class StopTuner extends TunerEvent {
 }
 
 final class PitchReceived extends TunerEvent {
-  const PitchReceived(
-    this.frequencyHz,
-    this.centsDeviation, {
-    this.confidence = 1.0,
-  });
-  final double frequencyHz;
-  final double centsDeviation;
-  // Fiabilité de la détection [0.0–1.0]. En dessous de AudioConstants.minConfidence
-  // l'émission est ignorée par le BLoC (Phase 9 : valeur réelle depuis l'Isolate).
-  final double confidence;
+  const PitchReceived(this.result);
+  final PitchResult result;
   @override
-  List<Object?> get props => [frequencyHz, centsDeviation, confidence];
+  List<Object?> get props => [result];
 }
 
 final class ConfigChanged extends TunerEvent {
@@ -56,4 +49,11 @@ final class DebugCentsOverride extends TunerEvent {
   final double cents;
   @override
   List<Object?> get props => [cents];
+}
+
+final class PermissionDenied extends TunerEvent {
+  const PermissionDenied({required this.isPermanent});
+  final bool isPermanent;
+  @override
+  List<Object?> get props => [isPermanent];
 }
