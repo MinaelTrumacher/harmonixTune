@@ -1,0 +1,47 @@
+name: HarmonixTune CI - Validation Continue
+
+on:
+  push:
+    branches: [ "develop", "main" ]
+  pull_request:
+    branches: [ "develop", "main" ]
+
+jobs:
+  quality_gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupération du code source
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Installation de Java (Requis pour l'outillage de build Android de Flutter)
+      - name: Setup Java JDK
+        uses: actions/actions-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3. Installation et mise en cache du SDK Flutter (Gain de temps sur la CI)
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Utilise le cache natif de GitHub pour ne pas retélécharger Flutter à chaque commit
+          cache: true 
+
+      # 4. Récupération des dépendances (flutter pub get et non dart pub get)
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 5. Vérification du formatage (Très important pour le Bloc 2 / Qualité de niveau 7)
+      - name: Verify code formatting
+        run: flutter format --output=none --set-exit-if-changed .
+
+      # 6. Analyse statique stricte (On pousse le niveau 7 avec --fatal-warnings)
+      - name: Analyze project source
+        run: flutter analyze --fatal-warnings --fatal-infos
+
+      # 7. Exécution des tests unitaires (flutter test)
+      - name: Run unit tests
+        run: flutter test --coverage
