@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/audio_constants.dart';
@@ -15,7 +16,11 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
     on<StartTuner>(_onStart);
     on<StopTuner>(_onStop);
     on<PitchReceived>(_onPitchReceived);
-    on<ConfigChanged>(_onConfigChanged);
+    // restartable() : si un nouveau ConfigChanged arrive pendant qu'un autre
+    // est en cours de traitement (await cancel()), le précédent est annulé.
+    // Rend l'intention explicite et protège contre tout refactoring futur
+    // qui changerait le transformer par défaut.
+    on<ConfigChanged>(_onConfigChanged, transformer: restartable());
     on<StringSelected>(_onStringSelected);
     on<IntelliTunerToggled>(_onIntelliTunerToggled);
     on<DebugCentsOverride>(_onDebugOverride);
