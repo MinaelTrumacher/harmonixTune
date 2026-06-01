@@ -1,0 +1,166 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gap/gap.dart';
+
+import '../../shared/app_header.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_text_styles.dart';
+import 'bloc/tuner_bloc.dart';
+import 'bloc/tuner_event.dart';
+import 'bloc/tuner_state.dart';
+import 'widgets/cents_bar_widget.dart';
+import 'widgets/intelli_tuner_toggle.dart';
+import 'widgets/note_display_widget.dart';
+import 'widgets/string_selector_widget.dart';
+import 'widgets/tuner_needle_widget.dart';
+import 'widgets/tuning_preset_chip.dart';
+
+class TunerScreen extends StatelessWidget {
+  const TunerScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => TunerBloc()..add(const StartTuner()),
+      child: const _TunerView(),
+    );
+  }
+}
+
+class _TunerView extends StatelessWidget {
+  const _TunerView();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // ── Header ───────────────────────────────────────────────────────
+          const AppHeader(),
+
+          // ── Preset + Instrument ──────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                TuningPresetChip(label: 'Standard', onTap: () {}),
+                const Gap(8),
+                TuningPresetChip(label: 'Guitar', onTap: () {}),
+              ],
+            ),
+          ),
+
+          const Gap(12),
+
+          // ── Intelli-Tuner toggle ─────────────────────────────────────────
+          const IntelliTunerToggle(),
+
+          const Gap(8),
+
+          // ── Cadran ───────────────────────────────────────────────────────
+          SizedBox(
+            height: 190,
+            width: double.infinity,
+            child: const TunerNeedleWidget(),
+          ),
+
+          const Gap(12),
+
+          // ── Note + Hz ────────────────────────────────────────────────────
+          const NoteDisplayWidget(),
+
+          const Gap(20),
+
+          // ── Barre de cents ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              children: [
+                const SizedBox(
+                  height: 32,
+                  width: double.infinity,
+                  child: CentsBarWidget(),
+                ),
+                const Gap(6),
+                BlocBuilder<TunerBloc, TunerDisplayState>(
+                  builder: (_, state) {
+                    if (state is! TunerListening) {
+                      return const SizedBox.shrink();
+                    }
+                    final cents = state.pitch.centsDeviation;
+                    final label = cents.abs() < 0.5
+                        ? '✓  IN TUNE'
+                        : '${cents > 0 ? '+' : ''}${cents.toStringAsFixed(1)} cents';
+                    final color = cents.abs() < 0.5
+                        ? AppColors.inTune
+                        : AppColors.textSecondary;
+                    return Text(
+                      label,
+                      style: AppTextStyles.labelSmall.copyWith(color: color),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const Gap(24),
+
+          // ── Sélecteur de cordes ──────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: const StringSelectorWidget(),
+          ),
+
+          const Spacer(),
+
+          // ── Slider de debug (mode debug uniquement) ──────────────────────
+          if (kDebugMode) const _DebugCentsSlider(),
+
+          const Gap(8),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Debug only ─────────────────────────────────────────────────────────────
+
+class _DebugCentsSlider extends StatelessWidget {
+  const _DebugCentsSlider();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TunerBloc, TunerDisplayState>(
+      builder: (context, state) {
+        final cents = state is TunerListening
+            ? state.pitch.centsDeviation.clamp(-50.0, 50.0)
+            : 0.0;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              Text(
+                'DEBUG  ${cents > 0 ? '+' : ''}${cents.toStringAsFixed(1)} ¢',
+                style: AppTextStyles.labelSmall
+                    .copyWith(color: AppColors.textDisabled),
+              ),
+              Slider(
+                value: cents,
+                min: -50,
+                max: 50,
+                divisions: 100,
+                onChanged: (v) =>
+                    context.read<TunerBloc>().add(DebugCentsOverride(v)),
+                onChangeEnd: (_) =>
+                    context.read<TunerBloc>().add(const StartTuner()),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
