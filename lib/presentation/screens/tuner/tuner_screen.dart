@@ -1,8 +1,11 @@
+import 'package:app_settings/app_settings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 
+import '../../../data/datasources/record_microphone_data_source.dart';
+import '../../../data/repositories/audio_repository_impl.dart';
 import '../../shared/app_header.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
@@ -30,7 +33,9 @@ class TunerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TunerBloc()..add(const StartTuner()),
+      create: (_) =>
+          TunerBloc(AudioRepositoryImpl(RecordMicrophoneDataSource()))
+            ..add(const StartTuner()),
       child: const _TunerView(),
     );
   }
@@ -38,6 +43,83 @@ class TunerScreen extends StatelessWidget {
 
 class _TunerView extends StatelessWidget {
   const _TunerView();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TunerBloc, TunerDisplayState>(
+      buildWhen: (prev, next) =>
+          (prev is TunerPermissionDeniedState) !=
+          (next is TunerPermissionDeniedState),
+      builder: (context, state) {
+        if (state is TunerPermissionDeniedState) {
+          return _PermissionDeniedView(isPermanent: state.isPermanent);
+        }
+        return const _TunerContent();
+      },
+    );
+  }
+}
+
+// ── Vue de refus de permission (Scénario A1) ──────────────────────────────────
+
+class _PermissionDeniedView extends StatelessWidget {
+  const _PermissionDeniedView({required this.isPermanent});
+
+  final bool isPermanent;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.mic_off_outlined,
+              size: 64,
+              color: AppColors.textDisabled,
+            ),
+            const Gap(24),
+            Text(
+              'Accès au microphone requis',
+              style: AppTextStyles.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const Gap(12),
+            Text(
+              'L\'accordeur a besoin du microphone pour détecter les notes '
+              'jouées par votre instrument.',
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const Gap(32),
+            if (isPermanent)
+              FilledButton.icon(
+                onPressed: () => AppSettings.openAppSettings(),
+                icon: const Icon(Icons.settings_outlined),
+                label: const Text('Ouvrir les réglages'),
+              )
+            else
+              FilledButton.icon(
+                onPressed: () =>
+                    context.read<TunerBloc>().add(const StartTuner()),
+                icon: const Icon(Icons.refresh_outlined),
+                label: const Text('Réessayer'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Contenu principal de l'accordeur ─────────────────────────────────────────
+
+class _TunerContent extends StatelessWidget {
+  const _TunerContent();
 
   @override
   Widget build(BuildContext context) {
