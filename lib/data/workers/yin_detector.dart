@@ -5,10 +5,10 @@ class YinDetector {
     required this.sampleRate,
     required this.bufferSize,
     this.threshold = 0.10,
-  })  : _tauMin = (sampleRate / 1200.0).ceil(),
-        _tauMax = bufferSize ~/ 2,
-        // +1 pour accéder à _cmndf[_tauMax] lors de l'interpolation parabolique
-        _cmndf = Float64List(bufferSize ~/ 2 + 1);
+  }) : _tauMin = (sampleRate / 1200.0).ceil(),
+       _tauMax = bufferSize ~/ 2,
+       // +1 pour accéder à _cmndf[_tauMax] lors de l'interpolation parabolique
+       _cmndf = Float64List(bufferSize ~/ 2 + 1);
 
   final int sampleRate;
   final int bufferSize;

@@ -25,15 +25,14 @@ PitchResult makePitch({
   double cents = 0.0,
   double confidence = 0.95,
   TunerState state = TunerState.inTune,
-}) =>
-    PitchResult(
-      frequencyHz: hz,
-      noteName: note,
-      octave: octave,
-      centsDeviation: cents,
-      confidence: confidence,
-      state: state,
-    );
+}) => PitchResult(
+  frequencyHz: hz,
+  noteName: note,
+  octave: octave,
+  centsDeviation: cents,
+  confidence: confidence,
+  state: state,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,8 +47,9 @@ void main() {
     mockRepo = MockAudioRepository();
     when(() => mockRepo.stop()).thenAnswer((_) async {});
     when(() => mockRepo.updateConfig(any())).thenAnswer((_) async {});
-    when(() => mockRepo.streamPitch(any()))
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockRepo.streamPitch(any()),
+    ).thenAnswer((_) => const Stream.empty());
   });
 
   TunerBloc makeBloc() => TunerBloc(mockRepo);
@@ -68,8 +68,9 @@ void main() {
       'émet TunerListening quand PitchResult reçu',
       build: () {
         final pitch = makePitch();
-        when(() => mockRepo.streamPitch(any()))
-            .thenAnswer((_) => Stream.value(pitch));
+        when(
+          () => mockRepo.streamPitch(any()),
+        ).thenAnswer((_) => Stream.value(pitch));
         return makeBloc();
       },
       act: (b) async {
@@ -82,8 +83,9 @@ void main() {
     blocTest<TunerBloc, TunerDisplayState>(
       'émet TunerPermissionDeniedState sur AudioPermissionException',
       build: () {
-        when(() => mockRepo.streamPitch(any()))
-            .thenAnswer((_) => Stream.error(const AudioPermissionException()));
+        when(
+          () => mockRepo.streamPitch(any()),
+        ).thenAnswer((_) => Stream.error(const AudioPermissionException()));
         return makeBloc();
       },
       act: (b) async {
@@ -97,7 +99,8 @@ void main() {
       'isPermanent transmis dans TunerPermissionDeniedState',
       build: () {
         when(() => mockRepo.streamPitch(any())).thenAnswer(
-          (_) => Stream.error(const AudioPermissionException(isPermanent: true)),
+          (_) =>
+              Stream.error(const AudioPermissionException(isPermanent: true)),
         );
         return makeBloc();
       },
@@ -126,7 +129,8 @@ void main() {
         b.add(const StopTuner());
       },
       expect: () => [isA<TunerInitial>()],
-      verify: (_) => verify(() => mockRepo.stop()).called(greaterThanOrEqualTo(1)),
+      verify: (_) =>
+          verify(() => mockRepo.stop()).called(greaterThanOrEqualTo(1)),
     );
   });
 
@@ -138,11 +142,7 @@ void main() {
       build: makeBloc,
       act: (b) => b.add(PitchReceived(makePitch(note: 'E', octave: 4))),
       expect: () => [
-        isA<TunerListening>().having(
-          (s) => s.pitch.noteName,
-          'noteName',
-          'E',
-        ),
+        isA<TunerListening>().having((s) => s.pitch.noteName, 'noteName', 'E'),
       ],
     );
 
@@ -156,8 +156,9 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 10));
         b.add(PitchReceived(makePitch(confidence: 0.60)));
       },
-      verify: (_) =>
-          verify(() => mockRepo.updateConfig(any())).called(greaterThanOrEqualTo(1)),
+      verify: (_) => verify(
+        () => mockRepo.updateConfig(any()),
+      ).called(greaterThanOrEqualTo(1)),
     );
 
     blocTest<TunerBloc, TunerDisplayState>(

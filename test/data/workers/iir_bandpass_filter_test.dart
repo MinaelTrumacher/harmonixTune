@@ -42,7 +42,11 @@ void main() {
     });
 
     test('accepte un Q personnalisé', () {
-      final f = IirBandpassFilter(centerHz: 440.0, sampleRate: sampleRate, Q: 8.0);
+      final f = IirBandpassFilter(
+        centerHz: 440.0,
+        sampleRate: sampleRate,
+        Q: 8.0,
+      );
       expect(f.Q, equals(8.0));
     });
   });
@@ -106,20 +110,26 @@ void main() {
       expect(rmsAfterUpdate / rms(sine(110.0)), greaterThan(0.7));
     });
 
-    test('updateCenter réinitialise l\'état du filtre (pas de transitoire persistant)', () {
-      final filter = IirBandpassFilter(centerHz: 440.0, sampleRate: sampleRate);
-      // Alimenter le filtre avec un signal fort pour charger l'état interne
-      filter.process(sine(440.0, amplitude: 10.0));
+    test(
+      'updateCenter réinitialise l\'état du filtre (pas de transitoire persistant)',
+      () {
+        final filter = IirBandpassFilter(
+          centerHz: 440.0,
+          sampleRate: sampleRate,
+        );
+        // Alimenter le filtre avec un signal fort pour charger l'état interne
+        filter.process(sine(440.0, amplitude: 10.0));
 
-      // Changer de centre : l'état doit être réinitialisé
-      filter.updateCenter(110.0);
-      // Les premiers échantillons d'un signal nul doivent être nuls (pas de rémanence)
-      final silence = Float64List(64);
-      filter.process(silence);
-      for (final s in silence) {
-        expect(s, closeTo(0.0, 1e-10));
-      }
-    });
+        // Changer de centre : l'état doit être réinitialisé
+        filter.updateCenter(110.0);
+        // Les premiers échantillons d'un signal nul doivent être nuls (pas de rémanence)
+        final silence = Float64List(64);
+        filter.process(silence);
+        for (final s in silence) {
+          expect(s, closeTo(0.0, 1e-10));
+        }
+      },
+    );
   });
 
   group('IirBandpassFilter — stabilité numérique', () {
@@ -136,17 +146,26 @@ void main() {
       expect(longSignal.every((s) => s.abs() <= 10.0), isTrue);
     });
 
-    test('traite les fréquences graves des cordes de guitare sans divergence', () {
-      // Fréquences des 6 cordes en accord standard
-      const stringFreqs = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
-      for (final freq in stringFreqs) {
-        final filter = IirBandpassFilter(centerHz: freq, sampleRate: sampleRate);
-        final signal = sine(freq);
-        filter.process(signal);
-        expect(signal.any((s) => s.isNaN || s.isInfinite), isFalse,
-            reason: 'Divergence pour $freq Hz');
-      }
-    });
+    test(
+      'traite les fréquences graves des cordes de guitare sans divergence',
+      () {
+        // Fréquences des 6 cordes en accord standard
+        const stringFreqs = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
+        for (final freq in stringFreqs) {
+          final filter = IirBandpassFilter(
+            centerHz: freq,
+            sampleRate: sampleRate,
+          );
+          final signal = sine(freq);
+          filter.process(signal);
+          expect(
+            signal.any((s) => s.isNaN || s.isInfinite),
+            isFalse,
+            reason: 'Divergence pour $freq Hz',
+          );
+        }
+      },
+    );
   });
 
   group('IirBandpassFilter — process in-place', () {

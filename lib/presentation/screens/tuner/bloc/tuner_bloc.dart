@@ -38,20 +38,22 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
   Future<void> _subscribeToRepo() async {
     await _subscription?.cancel();
     _subscription = null;
-    _subscription = _audioRepository.streamPitch(_config).listen(
-      (result) {
-        if (!isClosed) add(PitchReceived(result));
-      },
-      onError: (Object error, StackTrace stack) {
-        if (isClosed) return;
-        if (error is AudioPermissionException) {
-          add(PermissionDenied(isPermanent: error.isPermanent));
-        } else {
-          add(const StopTuner());
-        }
-      },
-      cancelOnError: true,
-    );
+    _subscription = _audioRepository
+        .streamPitch(_config)
+        .listen(
+          (result) {
+            if (!isClosed) add(PitchReceived(result));
+          },
+          onError: (Object error, StackTrace stack) {
+            if (isClosed) return;
+            if (error is AudioPermissionException) {
+              add(PermissionDenied(isPermanent: error.isPermanent));
+            } else {
+              add(const StopTuner());
+            }
+          },
+          cancelOnError: true,
+        );
   }
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -67,10 +69,7 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     emit(const TunerInitial());
   }
 
-  void _onPitchReceived(
-    PitchReceived event,
-    Emitter<TunerDisplayState> emit,
-  ) {
+  void _onPitchReceived(PitchReceived event, Emitter<TunerDisplayState> emit) {
     final result = event.result;
 
     // Scénario A2 — auto-activation Intelli-Tuner :
@@ -79,16 +78,16 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
         result.confidence < AudioConstants.minConfidence &&
         !_intelliTunerEnabled) {
       _intelliTunerEnabled = true;
-      _audioRepository.updateConfig(
-        _config.copyWith(intelliTunerActive: true),
-      );
+      _audioRepository.updateConfig(_config.copyWith(intelliTunerActive: true));
     }
 
-    emit(TunerListening(
-      pitch: result,
-      config: _config,
-      intelliTunerEnabled: _intelliTunerEnabled,
-    ));
+    emit(
+      TunerListening(
+        pitch: result,
+        config: _config,
+        intelliTunerEnabled: _intelliTunerEnabled,
+      ),
+    );
   }
 
   void _onPermissionDenied(
@@ -116,11 +115,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     if (event.stringNote == null) _intelliTunerEnabled = false;
 
     if (state is TunerListening) {
-      emit(TunerListening(
-        pitch: (state as TunerListening).pitch,
-        config: _config,
-        intelliTunerEnabled: _intelliTunerEnabled,
-      ));
+      emit(
+        TunerListening(
+          pitch: (state as TunerListening).pitch,
+          config: _config,
+          intelliTunerEnabled: _intelliTunerEnabled,
+        ),
+      );
     }
   }
 
@@ -133,11 +134,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     _audioRepository.updateConfig(_config);
 
     if (state is TunerListening) {
-      emit(TunerListening(
-        pitch: (state as TunerListening).pitch,
-        config: _config,
-        intelliTunerEnabled: _intelliTunerEnabled,
-      ));
+      emit(
+        TunerListening(
+          pitch: (state as TunerListening).pitch,
+          config: _config,
+          intelliTunerEnabled: _intelliTunerEnabled,
+        ),
+      );
     }
   }
 
@@ -149,11 +152,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     await _subscription?.cancel();
     _subscription = null;
     await _audioRepository.stop();
-    emit(TunerListening(
-      pitch: _pitchFromCents(329.6, event.cents),
-      config: _config,
-      intelliTunerEnabled: _intelliTunerEnabled,
-    ));
+    emit(
+      TunerListening(
+        pitch: _pitchFromCents(329.6, event.cents),
+        config: _config,
+        intelliTunerEnabled: _intelliTunerEnabled,
+      ),
+    );
   }
 
   // ── Cycle de vie app (Scénario A3) ───────────────────────────────────────
@@ -164,7 +169,8 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     // `this.state` = TunerDisplayState courant du BLoC.
     if (state == AppLifecycleState.paused) {
       if (!isClosed) add(const StopTuner());
-    } else if (state == AppLifecycleState.resumed && this.state is TunerListening) {
+    } else if (state == AppLifecycleState.resumed &&
+        this.state is TunerListening) {
       if (!isClosed) add(const StartTuner());
     }
   }

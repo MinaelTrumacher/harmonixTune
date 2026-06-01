@@ -15,9 +15,15 @@ void main() {
       expect(c.instrumentType, InstrumentType.guitar);
     });
 
-    test('TuningConfiguration.standard est équivalent à const TuningConfiguration()', () {
-      expect(TuningConfiguration.standard, equals(const TuningConfiguration()));
-    });
+    test(
+      'TuningConfiguration.standard est équivalent à const TuningConfiguration()',
+      () {
+        expect(
+          TuningConfiguration.standard,
+          equals(const TuningConfiguration()),
+        );
+      },
+    );
   });
 
   group('TuningConfiguration — copyWith', () {
@@ -41,7 +47,10 @@ void main() {
     });
 
     test('copyWith intelliTunerActive', () {
-      expect(base.copyWith(intelliTunerActive: true).intelliTunerActive, isTrue);
+      expect(
+        base.copyWith(intelliTunerActive: true).intelliTunerActive,
+        isTrue,
+      );
     });
 
     test('copyWith instrumentType', () {

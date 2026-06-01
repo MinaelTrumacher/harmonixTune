@@ -11,11 +11,12 @@ import 'microphone_data_source.dart';
 
 class RecordMicrophoneDataSource implements MicrophoneDataSource {
   RecordMicrophoneDataSource({AudioRecorder? recorder})
-      : _recorder = recorder ?? AudioRecorder();
+    : _recorder = recorder ?? AudioRecorder();
 
   final AudioRecorder _recorder;
-  final _accumulator =
-      AudioBufferAccumulator(AudioConstants.bufferSize * 2); // N × 2 bytes
+  final _accumulator = AudioBufferAccumulator(
+    AudioConstants.bufferSize * 2,
+  ); // N × 2 bytes
   final _controller = StreamController<Uint8List>();
   StreamSubscription<Uint8List>? _subscription;
 

@@ -58,7 +58,14 @@ void audioIsolateEntryPoint(SendPort mainSendPort) {
       config = message.config;
       filter = _buildFilter(config);
     } else if (message is AudioBufferMessage) {
-      _processBuffer(message.data, samples, detector, filter, config, mainSendPort);
+      _processBuffer(
+        message.data,
+        samples,
+        detector,
+        filter,
+        config,
+        mainSendPort,
+      );
     } else if (message is UpdateConfigMessage) {
       config = message.config;
       filter = _buildFilter(config);
@@ -127,7 +134,18 @@ void _processBuffer(
   double referenceHz,
 ) {
   const noteNames = [
-    'A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#',
+    'A',
+    'A#',
+    'B',
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
   ];
   final semitones = (12 * log(f0Hz / referenceHz) / log(2)).round();
   final fRef = referenceHz * pow(2.0, semitones / 12.0);
@@ -137,11 +155,17 @@ void _processBuffer(
   // Octave via MIDI : A4 = MIDI 69, octave = midiNote ~/ 12 - 1
   final midiNote = 69 + semitones;
   final octave = midiNote ~/ 12 - 1;
-  return (noteName: noteNames[noteIndex], octave: octave, centsDeviation: cents);
+  return (
+    noteName: noteNames[noteIndex],
+    octave: octave,
+    centsDeviation: cents,
+  );
 }
 
 TunerState _stateFromCents(double cents) {
-  if (cents.abs() <= AudioConstants.inTuneThresholdCents) return TunerState.inTune;
-  if (cents.abs() <= AudioConstants.nearTuneThresholdCents) return TunerState.nearTune;
+  if (cents.abs() <= AudioConstants.inTuneThresholdCents)
+    return TunerState.inTune;
+  if (cents.abs() <= AudioConstants.nearTuneThresholdCents)
+    return TunerState.nearTune;
   return cents < 0 ? TunerState.tooLow : TunerState.tooHigh;
 }

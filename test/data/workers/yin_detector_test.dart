@@ -79,23 +79,32 @@ void main() {
   });
 
   group('YinDetector — robustesse aux bords', () {
-    test('ne lève pas d\'exception si τ* est sur τ_min (pas d\'interpolation)', () {
-      // Signal très haute fréquence : τ proche de τ_min
-      expect(() => makeDetector().detect(sine(1100.0)), returnsNormally);
-    });
+    test(
+      'ne lève pas d\'exception si τ* est sur τ_min (pas d\'interpolation)',
+      () {
+        // Signal très haute fréquence : τ proche de τ_min
+        expect(() => makeDetector().detect(sine(1100.0)), returnsNormally);
+      },
+    );
 
-    test('ne lève pas d\'exception si τ* est sur τ_max (pas d\'interpolation)', () {
-      // Signal à la fréquence limite basse (≈ sampleRate / τ_max)
-      final lowFreq = sampleRate / (bufferSize ~/ 2).toDouble();
-      expect(() => makeDetector().detect(sine(lowFreq)), returnsNormally);
-    });
+    test(
+      'ne lève pas d\'exception si τ* est sur τ_max (pas d\'interpolation)',
+      () {
+        // Signal à la fréquence limite basse (≈ sampleRate / τ_max)
+        final lowFreq = sampleRate / (bufferSize ~/ 2).toDouble();
+        expect(() => makeDetector().detect(sine(lowFreq)), returnsNormally);
+      },
+    );
 
     test('confiance dans [0.0, 1.0] pour tout signal valide', () {
       for (final hz in [82.41, 110.0, 146.83, 196.0, 246.94, 329.63, 440.0]) {
         final result = makeDetector().detect(sine(hz));
         if (result != null) {
-          expect(result.confidence, inInclusiveRange(0.0, 1.0),
-              reason: 'Échec pour $hz Hz');
+          expect(
+            result.confidence,
+            inInclusiveRange(0.0, 1.0),
+            reason: 'Échec pour $hz Hz',
+          );
         }
       }
     });
@@ -108,19 +117,31 @@ void main() {
   });
 
   group('YinDetector — paramètre threshold', () {
-    test('threshold bas (0.05) : plus strict, peut retourner null sur signal bruité', () {
-      final strictDetector =
-          YinDetector(sampleRate: sampleRate, bufferSize: bufferSize, threshold: 0.05);
-      // Signal propre toujours détecté même avec threshold strict
-      final result = strictDetector.detect(sine(440.0));
-      expect(result, isNotNull);
-    });
+    test(
+      'threshold bas (0.05) : plus strict, peut retourner null sur signal bruité',
+      () {
+        final strictDetector = YinDetector(
+          sampleRate: sampleRate,
+          bufferSize: bufferSize,
+          threshold: 0.05,
+        );
+        // Signal propre toujours détecté même avec threshold strict
+        final result = strictDetector.detect(sine(440.0));
+        expect(result, isNotNull);
+      },
+    );
 
-    test('threshold élevé (0.20) : moins strict, détecte malgré bruit léger', () {
-      final lenientDetector =
-          YinDetector(sampleRate: sampleRate, bufferSize: bufferSize, threshold: 0.20);
-      final result = lenientDetector.detect(sine(440.0));
-      expect(result, isNotNull);
-    });
+    test(
+      'threshold élevé (0.20) : moins strict, détecte malgré bruit léger',
+      () {
+        final lenientDetector = YinDetector(
+          sampleRate: sampleRate,
+          bufferSize: bufferSize,
+          threshold: 0.20,
+        );
+        final result = lenientDetector.detect(sine(440.0));
+        expect(result, isNotNull);
+      },
+    );
   });
 }

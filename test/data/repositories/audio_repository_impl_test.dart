@@ -18,9 +18,10 @@ Uint8List buildPcmBuffer(double freqHz, {double amplitude = 0.8}) {
   const sr = AudioConstants.sampleRate;
   final bytes = ByteData(n * 2);
   for (int i = 0; i < n; i++) {
-    final s = (amplitude * sin(2 * pi * freqHz * i / sr) * 32767)
-        .round()
-        .clamp(-32768, 32767);
+    final s = (amplitude * sin(2 * pi * freqHz * i / sr) * 32767).round().clamp(
+      -32768,
+      32767,
+    );
     bytes.setInt16(i * 2, s, Endian.little);
   }
   return bytes.buffer.asUint8List();
@@ -34,8 +35,9 @@ void main() {
     mockSource = MockMicrophoneDataSource();
     when(() => mockSource.initialize()).thenAnswer((_) async {});
     when(() => mockSource.dispose()).thenAnswer((_) async {});
-    when(() => mockSource.stream())
-        .thenAnswer((_) => const Stream<Uint8List>.empty());
+    when(
+      () => mockSource.stream(),
+    ).thenAnswer((_) => const Stream<Uint8List>.empty());
     repo = AudioRepositoryImpl(mockSource);
   });
 
@@ -46,11 +48,14 @@ void main() {
   // ── streamPitch — contrat de base ─────────────────────────────────────────
 
   group('AudioRepositoryImpl — streamPitch', () {
-    test('retourne un Stream non null sans souscrire (lazy : pas d\'isolate)', () {
-      // _start() n'est PAS appelé avant un abonné → pas d'isolate → tearDown rapide
-      final stream = repo.streamPitch(const TuningConfiguration());
-      expect(stream, isA<Stream<PitchResult>>());
-    });
+    test(
+      'retourne un Stream non null sans souscrire (lazy : pas d\'isolate)',
+      () {
+        // _start() n'est PAS appelé avant un abonné → pas d'isolate → tearDown rapide
+        final stream = repo.streamPitch(const TuningConfiguration());
+        expect(stream, isA<Stream<PitchResult>>());
+      },
+    );
 
     test('appelle initialize() après souscription', () async {
       final sub = repo
@@ -72,8 +77,7 @@ void main() {
 
     test('produit un PitchResult à partir d\'un chunk PCM A4', () async {
       final pcmController = StreamController<Uint8List>();
-      when(() => mockSource.stream())
-          .thenAnswer((_) => pcmController.stream);
+      when(() => mockSource.stream()).thenAnswer((_) => pcmController.stream);
 
       final results = <PitchResult>[];
       final sub = repo
@@ -94,8 +98,7 @@ void main() {
 
     test('ne produit rien pour un chunk silencieux', () async {
       final pcmController = StreamController<Uint8List>();
-      when(() => mockSource.stream())
-          .thenAnswer((_) => pcmController.stream);
+      when(() => mockSource.stream()).thenAnswer((_) => pcmController.stream);
 
       final results = <PitchResult>[];
       final sub = repo
@@ -117,8 +120,9 @@ void main() {
 
   group('AudioRepositoryImpl — permission refusée (A1)', () {
     test('propage AudioPermissionException dans le stream', () async {
-      when(() => mockSource.initialize())
-          .thenThrow(const AudioPermissionException());
+      when(
+        () => mockSource.initialize(),
+      ).thenThrow(const AudioPermissionException());
 
       final errors = <Object>[];
       final sub = repo
@@ -133,8 +137,9 @@ void main() {
     });
 
     test('isPermanent=true quand refus définitif', () async {
-      when(() => mockSource.initialize())
-          .thenThrow(const AudioPermissionException(isPermanent: true));
+      when(
+        () => mockSource.initialize(),
+      ).thenThrow(const AudioPermissionException(isPermanent: true));
 
       final errors = <Object>[];
       final sub = repo
@@ -187,8 +192,7 @@ void main() {
 
     test('stream se ferme après stop()', () async {
       final pcmController = StreamController<Uint8List>();
-      when(() => mockSource.stream())
-          .thenAnswer((_) => pcmController.stream);
+      when(() => mockSource.stream()).thenAnswer((_) => pcmController.stream);
 
       bool done = false;
       final sub = repo

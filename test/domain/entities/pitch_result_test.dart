@@ -3,13 +3,13 @@ import 'package:harmonix_tune/domain/entities/pitch_result.dart';
 import 'package:harmonix_tune/domain/enums/tuner_state.dart';
 
 PitchResult base() => const PitchResult(
-      frequencyHz: 440.0,
-      noteName: 'A',
-      octave: 4,
-      centsDeviation: 0.0,
-      confidence: 0.95,
-      state: TunerState.inTune,
-    );
+  frequencyHz: 440.0,
+  noteName: 'A',
+  octave: 4,
+  centsDeviation: 0.0,
+  confidence: 0.95,
+  state: TunerState.inTune,
+);
 
 void main() {
   group('PitchResult — constructeur & constante', () {
@@ -52,7 +52,10 @@ void main() {
     });
 
     test('copie en changeant state', () {
-      expect(base().copyWith(state: TunerState.tooLow).state, TunerState.tooLow);
+      expect(
+        base().copyWith(state: TunerState.tooLow).state,
+        TunerState.tooLow,
+      );
     });
   });
 

@@ -36,7 +36,7 @@ class IirBandpassFilter {
     for (int i = 0; i < samples.length; i++) {
       final x = samples[i];
       final y = _b0 * x + _z1;
-      _z1 = -_a1 * y + _z2;   // a1 est négatif → -a1 est positif (résonance)
+      _z1 = -_a1 * y + _z2; // a1 est négatif → -a1 est positif (résonance)
       _z2 = _b2 * x - _a2 * y;
       samples[i] = y;
     }
@@ -47,9 +47,9 @@ class IirBandpassFilter {
     final alpha = sin(omega0) / (2 * Q);
     final norm = 1.0 / (1.0 + alpha);
 
-    _b0 =  alpha * norm;              //  α / (1+α)
-    _b2 = -alpha * norm;              // -α / (1+α)   (b1 = 0)
-    _a1 = -2.0 * cos(omega0) * norm;  // -2cos(ω₀) / (1+α)  — valeur négative
-    _a2 = (1.0 - alpha) * norm;       //  (1-α) / (1+α)
+    _b0 = alpha * norm; //  α / (1+α)
+    _b2 = -alpha * norm; // -α / (1+α)   (b1 = 0)
+    _a1 = -2.0 * cos(omega0) * norm; // -2cos(ω₀) / (1+α)  — valeur négative
+    _a2 = (1.0 - alpha) * norm; //  (1-α) / (1+α)
   }
 }

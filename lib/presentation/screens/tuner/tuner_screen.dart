@@ -33,9 +33,9 @@ class TunerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TunerBloc(
-        AudioRepositoryImpl(RecordMicrophoneDataSource()),
-      )..add(const StartTuner()),
+      create: (_) =>
+          TunerBloc(AudioRepositoryImpl(RecordMicrophoneDataSource()))
+            ..add(const StartTuner()),
       child: const _TunerView(),
     );
   }
@@ -75,7 +75,11 @@ class _PermissionDeniedView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.mic_off_outlined, size: 64, color: AppColors.textDisabled),
+            const Icon(
+              Icons.mic_off_outlined,
+              size: 64,
+              color: AppColors.textDisabled,
+            ),
             const Gap(24),
             Text(
               'Accès au microphone requis',
@@ -86,8 +90,9 @@ class _PermissionDeniedView extends StatelessWidget {
             Text(
               'L\'accordeur a besoin du microphone pour détecter les notes '
               'jouées par votre instrument.',
-              style: AppTextStyles.labelSmall
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const Gap(32),

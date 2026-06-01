@@ -25,8 +25,8 @@ void main() {
 
     test('accumulation de petits chunks → émet quand le seuil est atteint', () {
       final acc = make();
-      acc.feed(Uint8List(2000));   // < 4096 → rien
-      acc.feed(Uint8List(2000));   // 4000 < 4096 → rien
+      acc.feed(Uint8List(2000)); // < 4096 → rien
+      acc.feed(Uint8List(2000)); // 4000 < 4096 → rien
       final third = acc.feed(Uint8List(200)).toList(); // 4200 ≥ 4096 → 1 buffer
       expect(third, hasLength(1));
       expect(third.first.length, equals(chunkBytes));
@@ -49,7 +49,9 @@ void main() {
 
     test('données du chunk sont correctes (valeurs préservées)', () {
       final acc = make();
-      final data = Uint8List.fromList(List.generate(chunkBytes, (i) => i % 256));
+      final data = Uint8List.fromList(
+        List.generate(chunkBytes, (i) => i % 256),
+      );
       final result = acc.feed(data).toList();
       expect(result.first, equals(data));
     });
@@ -59,8 +61,9 @@ void main() {
       // Envoyer 3000 bytes avec valeur 0xAA
       acc.feed(Uint8List.fromList(List.filled(3000, 0xAA)));
       // Compléter avec 1096 bytes valeur 0xBB → total 4096 → 1 chunk
-      final result =
-          acc.feed(Uint8List.fromList(List.filled(1096, 0xBB))).toList();
+      final result = acc
+          .feed(Uint8List.fromList(List.filled(1096, 0xBB)))
+          .toList();
       expect(result, hasLength(1));
       // Les 3000 premiers bytes doivent être 0xAA
       expect(result.first.sublist(0, 3000), everyElement(0xAA));

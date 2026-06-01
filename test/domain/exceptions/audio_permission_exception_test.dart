@@ -8,7 +8,10 @@ void main() {
     });
 
     test('isPermanent peut être true', () {
-      expect(const AudioPermissionException(isPermanent: true).isPermanent, isTrue);
+      expect(
+        const AudioPermissionException(isPermanent: true).isPermanent,
+        isTrue,
+      );
     });
 
     test('toString — refus temporaire', () {
