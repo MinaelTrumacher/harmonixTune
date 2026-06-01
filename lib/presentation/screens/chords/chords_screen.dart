@@ -11,7 +11,9 @@ class ChordsScreen extends StatelessWidget {
       child: Center(
         child: Text(
           'Chords — Phase 6',
-          style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
       ),
     );

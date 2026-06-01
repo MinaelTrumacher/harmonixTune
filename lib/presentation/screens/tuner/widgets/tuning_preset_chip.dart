@@ -4,11 +4,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_text_styles.dart';
 
 class TuningPresetChip extends StatelessWidget {
-  const TuningPresetChip({
-    super.key,
-    required this.label,
-    this.onTap,
-  });
+  const TuningPresetChip({super.key, required this.label, this.onTap});
 
   final String label;
   final VoidCallback? onTap;
@@ -27,10 +23,7 @@ class TuningPresetChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              style: AppTextStyles.bodyLarge.copyWith(fontSize: 13),
-            ),
+            Text(label, style: AppTextStyles.bodyLarge.copyWith(fontSize: 13)),
             const SizedBox(width: 4),
             const Icon(
               Icons.keyboard_arrow_down_rounded,

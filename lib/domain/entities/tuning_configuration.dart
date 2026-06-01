@@ -33,8 +33,9 @@ class TuningConfiguration {
       referencePitchHz: referencePitchHz ?? this.referencePitchHz,
       sweetening: sweetening ?? this.sweetening,
       stringNotes: stringNotes ?? this.stringNotes,
-      targetString:
-          clearTargetString ? null : (targetString ?? this.targetString),
+      targetString: clearTargetString
+          ? null
+          : (targetString ?? this.targetString),
       instrumentType: instrumentType ?? this.instrumentType,
     );
   }
@@ -56,10 +57,10 @@ class TuningConfiguration {
 
   @override
   int get hashCode => Object.hash(
-        referencePitchHz,
-        sweetening,
-        targetString,
-        instrumentType,
-        Object.hashAll(stringNotes),
-      );
+    referencePitchHz,
+    sweetening,
+    targetString,
+    instrumentType,
+    Object.hashAll(stringNotes),
+  );
 }

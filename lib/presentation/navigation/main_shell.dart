@@ -24,18 +24,12 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.tune),
-            label: 'Tuner',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.tune), label: 'Tuner'),
           BottomNavigationBarItem(
             icon: Icon(Icons.library_music_outlined),
             label: 'Presets',

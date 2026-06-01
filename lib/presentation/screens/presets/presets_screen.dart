@@ -11,7 +11,9 @@ class PresetsScreen extends StatelessWidget {
       child: Center(
         child: Text(
           'Presets — Phase 5',
-          style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
       ),
     );

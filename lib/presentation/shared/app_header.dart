@@ -4,11 +4,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
 class AppHeader extends StatelessWidget {
-  const AppHeader({
-    super.key,
-    this.title = 'harmonixTune',
-    this.onSettingsTap,
-  });
+  const AppHeader({super.key, this.title = 'harmonixTune', this.onSettingsTap});
 
   final String title;
   final VoidCallback? onSettingsTap;

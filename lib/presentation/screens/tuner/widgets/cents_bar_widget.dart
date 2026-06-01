@@ -42,19 +42,20 @@ class _CentsBarWidgetState extends State<CentsBarWidget>
   }
 
   Color _stateColor(TunerState s) => switch (s) {
-        TunerState.inTune   => AppColors.inTune,
-        TunerState.nearTune => AppColors.primary,
-        TunerState.tooLow   => AppColors.tooLow,
-        TunerState.tooHigh  => AppColors.tooHigh,
-        TunerState.silent   => AppColors.textDisabled,
-      };
+    TunerState.inTune => AppColors.inTune,
+    TunerState.nearTune => AppColors.primary,
+    TunerState.tooLow => AppColors.tooLow,
+    TunerState.tooHigh => AppColors.tooHigh,
+    TunerState.silent => AppColors.textDisabled,
+  };
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<TunerBloc, TunerDisplayState>(
       listener: (_, state) {
-        final newTunerState =
-            state is TunerListening ? state.pitch.state : TunerState.silent;
+        final newTunerState = state is TunerListening
+            ? state.pitch.state
+            : TunerState.silent;
         final newTarget = state is TunerListening
             ? state.pitch.centsDeviation.clamp(-50.0, 50.0)
             : 0.0;
@@ -102,9 +103,9 @@ class _CentsBarPainter extends CustomPainter {
     Color(0x99F06050), // AppColors.tooHigh @ alpha 0.6
   ];
   static Shader? _barShader;
-  static Paint?  _barPaint;
-  static double  _cachedBarWidth  = -1;
-  static double  _cachedBarHeight = -1;
+  static Paint? _barPaint;
+  static double _cachedBarWidth = -1;
+  static double _cachedBarHeight = -1;
 
   // Paints statiques — jamais modifiés après init.
   static final _centerLinePaint = Paint()
@@ -128,10 +129,11 @@ class _CentsBarPainter extends CustomPainter {
     // Shader et Paint recréés uniquement si la taille du widget change.
     // barY dépend de size.height → les deux dimensions sont dans la clé.
     if (barWidth != _cachedBarWidth || size.height != _cachedBarHeight) {
-      _barShader = const LinearGradient(colors: _gradientColors)
-          .createShader(Rect.fromLTWH(barLeft, barY - 2, barWidth, 4));
+      _barShader = const LinearGradient(
+        colors: _gradientColors,
+      ).createShader(Rect.fromLTWH(barLeft, barY - 2, barWidth, 4));
       _barPaint = Paint()..shader = _barShader;
-      _cachedBarWidth  = barWidth;
+      _cachedBarWidth = barWidth;
       _cachedBarHeight = size.height;
     }
     canvas.drawRRect(

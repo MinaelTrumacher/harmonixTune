@@ -16,7 +16,11 @@ final class StopTuner extends TunerEvent {
 }
 
 final class PitchReceived extends TunerEvent {
-  const PitchReceived(this.frequencyHz, this.centsDeviation, {this.confidence = 1.0});
+  const PitchReceived(
+    this.frequencyHz,
+    this.centsDeviation, {
+    this.confidence = 1.0,
+  });
   final double frequencyHz;
   final double centsDeviation;
   // Fiabilité de la détection [0.0–1.0]. En dessous de AudioConstants.minConfidence

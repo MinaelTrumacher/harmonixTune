@@ -16,13 +16,14 @@ class IntelliTunerToggle extends StatelessWidget {
       buildWhen: (prev, next) {
         // Rebuild uniquement si l'état du toggle change.
         return (prev is TunerListening && prev.intelliTunerEnabled) !=
-               (next is TunerListening && next.intelliTunerEnabled);
+            (next is TunerListening && next.intelliTunerEnabled);
       },
       builder: (_, state) {
         final enabled = state is TunerListening && state.intelliTunerEnabled;
 
         return Tooltip(
-          message: 'Isole la fréquence de la corde sélectionnée — idéal en répétition',
+          message:
+              'Isole la fréquence de la corde sélectionnée — idéal en répétition',
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -41,9 +42,9 @@ class IntelliTunerToggle extends StatelessWidget {
               ),
               Switch(
                 value: enabled,
-                onChanged: (v) => context
-                    .read<TunerBloc>()
-                    .add(IntelliTunerToggled(enabled: v)),
+                onChanged: (v) => context.read<TunerBloc>().add(
+                  IntelliTunerToggled(enabled: v),
+                ),
               ),
             ],
           ),

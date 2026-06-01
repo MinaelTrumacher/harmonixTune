@@ -98,7 +98,9 @@ class _TunerView extends StatelessWidget {
                     return _centsLabel(prev) != _centsLabel(next);
                   },
                   builder: (_, state) {
-                    if (state is! TunerListening) return const SizedBox.shrink();
+                    if (state is! TunerListening) {
+                      return const SizedBox.shrink();
+                    }
                     final cents = state.pitch.centsDeviation;
                     final isInTune = cents.abs() < 0.5;
                     return Text(
@@ -106,7 +108,9 @@ class _TunerView extends StatelessWidget {
                           ? '✓  IN TUNE'
                           : '${cents > 0 ? '+' : ''}${cents.toStringAsFixed(1)} cents',
                       style: AppTextStyles.labelSmall.copyWith(
-                        color: isInTune ? AppColors.inTune : AppColors.textSecondary,
+                        color: isInTune
+                            ? AppColors.inTune
+                            : AppColors.textSecondary,
                       ),
                     );
                   },
@@ -153,8 +157,9 @@ class _DebugCentsSlider extends StatelessWidget {
             children: [
               Text(
                 'DEBUG  ${cents > 0 ? '+' : ''}${cents.toStringAsFixed(1)} ¢',
-                style: AppTextStyles.labelSmall
-                    .copyWith(color: AppColors.textDisabled),
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textDisabled,
+                ),
               ),
               Slider(
                 value: cents,

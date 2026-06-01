@@ -37,13 +37,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
   // ── Mock stream ──────────────────────────────────────────────────────────
   // Sera remplacé par AudioRepository.streamPitch() en Phase 9.
   Stream<_MockSample> _mockStream() {
-    return Stream.periodic(
-      const Duration(milliseconds: 16),
-      (_) {
-        final cents = sin(_mockTick++ * 0.04) * 35.0;
-        return _MockSample(frequencyHz: 329.6 + cents * 0.19, centsDeviation: cents);
-      },
-    );
+    return Stream.periodic(const Duration(milliseconds: 16), (_) {
+      final cents = sin(_mockTick++ * 0.04) * 35.0;
+      return _MockSample(
+        frequencyHz: 329.6 + cents * 0.19,
+        centsDeviation: cents,
+      );
+    });
   }
 
   Future<void> _subscribe() async {
@@ -51,7 +51,9 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     _subscription = null;
     _subscription = _mockStream().listen(
       (s) {
-        if (!isClosed) add(PitchReceived(s.frequencyHz, s.centsDeviation, confidence: 0.95));
+        if (!isClosed) {
+          add(PitchReceived(s.frequencyHz, s.centsDeviation, confidence: 0.95));
+        }
       },
       onError: (Object error, StackTrace stack) {
         if (!isClosed) add(const StopTuner());
@@ -73,11 +75,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
 
   void _onPitchReceived(PitchReceived event, Emitter<TunerDisplayState> emit) {
     if (event.confidence < AudioConstants.minConfidence) return;
-    emit(TunerListening(
-      pitch: _pitchFromCents(event.frequencyHz, event.centsDeviation),
-      config: _config,
-      intelliTunerEnabled: _intelliTunerEnabled,
-    ));
+    emit(
+      TunerListening(
+        pitch: _pitchFromCents(event.frequencyHz, event.centsDeviation),
+        config: _config,
+        intelliTunerEnabled: _intelliTunerEnabled,
+      ),
+    );
   }
 
   Future<void> _onConfigChanged(
@@ -88,17 +92,22 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     await _subscribe();
   }
 
-  void _onStringSelected(StringSelected event, Emitter<TunerDisplayState> emit) {
+  void _onStringSelected(
+    StringSelected event,
+    Emitter<TunerDisplayState> emit,
+  ) {
     _config = event.stringNote == null
         ? _config.copyWith(clearTargetString: true)
         : _config.copyWith(targetString: event.stringNote);
     if (state is TunerListening) {
       final s = state as TunerListening;
-      emit(TunerListening(
-        pitch: s.pitch,
-        config: _config,
-        intelliTunerEnabled: _intelliTunerEnabled,
-      ));
+      emit(
+        TunerListening(
+          pitch: s.pitch,
+          config: _config,
+          intelliTunerEnabled: _intelliTunerEnabled,
+        ),
+      );
     }
   }
 
@@ -109,11 +118,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     _intelliTunerEnabled = event.enabled;
     if (state is TunerListening) {
       final s = state as TunerListening;
-      emit(TunerListening(
-        pitch: s.pitch,
-        config: _config,
-        intelliTunerEnabled: _intelliTunerEnabled,
-      ));
+      emit(
+        TunerListening(
+          pitch: s.pitch,
+          config: _config,
+          intelliTunerEnabled: _intelliTunerEnabled,
+        ),
+      );
     }
   }
 
@@ -124,11 +135,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
   ) async {
     await _subscription?.cancel();
     _subscription = null;
-    emit(TunerListening(
-      pitch: _pitchFromCents(329.6, event.cents),
-      config: _config,
-      intelliTunerEnabled: _intelliTunerEnabled,
-    ));
+    emit(
+      TunerListening(
+        pitch: _pitchFromCents(329.6, event.cents),
+        config: _config,
+        intelliTunerEnabled: _intelliTunerEnabled,
+      ),
+    );
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────

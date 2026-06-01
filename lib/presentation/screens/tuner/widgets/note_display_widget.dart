@@ -21,12 +21,13 @@ class NoteDisplayWidget extends StatelessWidget {
         return p.noteName != n.noteName ||
             p.octave != n.octave ||
             p.state != n.state ||
-            p.frequencyHz.toStringAsFixed(1) != n.frequencyHz.toStringAsFixed(1);
+            p.frequencyHz.toStringAsFixed(1) !=
+                n.frequencyHz.toStringAsFixed(1);
       },
       builder: (_, state) {
         final noteName = state is TunerListening ? state.pitch.noteName : '--';
-        final octave   = state is TunerListening ? '${state.pitch.octave}' : '';
-        final hz       = state is TunerListening
+        final octave = state is TunerListening ? '${state.pitch.octave}' : '';
+        final hz = state is TunerListening
             ? '${state.pitch.frequencyHz.toStringAsFixed(1)} Hz'
             : '--- Hz';
 

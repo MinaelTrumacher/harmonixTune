@@ -20,10 +20,11 @@ class StringSelectorWidget extends StatelessWidget {
         return prev.config != next.config;
       },
       builder: (_, state) {
-        final config   = state is TunerListening ? state.config : null;
-        final strings  = config?.stringNotes ?? const ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
+        final config = state is TunerListening ? state.config : null;
+        final strings =
+            config?.stringNotes ?? const ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
         final selected = config?.targetString;
-        final isAuto   = selected == null;
+        final isAuto = selected == null;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -41,7 +42,9 @@ class StringSelectorWidget extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.surfaceHigh : Colors.transparent,
+                    color: isSelected
+                        ? AppColors.surfaceHigh
+                        : Colors.transparent,
                     border: Border.all(
                       color: isSelected ? AppColors.primary : AppColors.divider,
                       width: isSelected ? 1.5 : 1,

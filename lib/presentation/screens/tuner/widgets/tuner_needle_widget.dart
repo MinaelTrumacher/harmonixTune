@@ -47,19 +47,20 @@ class _TunerNeedleWidgetState extends State<TunerNeedleWidget>
   }
 
   Color _needleColor(TunerState state) => switch (state) {
-        TunerState.inTune   => AppColors.inTune,
-        TunerState.nearTune => AppColors.primary,
-        TunerState.tooLow   => AppColors.tooLow,
-        TunerState.tooHigh  => AppColors.tooHigh,
-        TunerState.silent   => AppColors.textDisabled,
-      };
+    TunerState.inTune => AppColors.inTune,
+    TunerState.nearTune => AppColors.primary,
+    TunerState.tooLow => AppColors.tooLow,
+    TunerState.tooHigh => AppColors.tooHigh,
+    TunerState.silent => AppColors.textDisabled,
+  };
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<TunerBloc, TunerDisplayState>(
       listener: (_, state) {
-        final newTunerState =
-            state is TunerListening ? state.pitch.state : TunerState.silent;
+        final newTunerState = state is TunerListening
+            ? state.pitch.state
+            : TunerState.silent;
         final newTarget = state is TunerListening
             ? (state.pitch.centsDeviation.clamp(-50.0, 50.0) / 50.0) * (pi / 2)
             : 0.0;
@@ -98,11 +99,11 @@ class _NeedlePainter extends CustomPainter {
     required this.displayAngle,
     required this.needleColor,
     required this.tunerState,
-  })  : _needleLinePaint = Paint()
-          ..color = needleColor
-          ..strokeWidth = 2
-          ..strokeCap = StrokeCap.round,
-        _needleTipPaint = Paint()..color = needleColor;
+  }) : _needleLinePaint = Paint()
+         ..color = needleColor
+         ..strokeWidth = 2
+         ..strokeCap = StrokeCap.round,
+       _needleTipPaint = Paint()..color = needleColor;
 
   final double displayAngle;
   final Color needleColor;
@@ -164,7 +165,10 @@ class _NeedlePainter extends CustomPainter {
   void _drawArc(Canvas canvas, Offset center, double radius) {
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      pi, pi, false, _arcPaint,
+      pi,
+      pi,
+      false,
+      _arcPaint,
     );
   }
 
@@ -185,7 +189,7 @@ class _NeedlePainter extends CustomPainter {
     for (final g in _gradData) {
       final inner = radius - (g.isMajor ? 14.0 : 8.0);
       canvas.drawLine(
-        Offset(center.dx + inner  * g.cosA, center.dy + inner  * g.sinA),
+        Offset(center.dx + inner * g.cosA, center.dy + inner * g.sinA),
         Offset(center.dx + radius * g.cosA, center.dy + radius * g.sinA),
         g.isMajor ? _majorGradPaint : _minorGradPaint,
       );

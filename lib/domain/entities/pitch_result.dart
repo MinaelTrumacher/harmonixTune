@@ -54,18 +54,20 @@ class PitchResult {
         // Comparaison à la précision affichée (1 décimale) — deux résultats
         // dont les valeurs affichées sont identiques sont traités comme égaux,
         // ce qui permet à BlocBuilder de sauter les rebuilds inutiles.
-        other.frequencyHz.toStringAsFixed(1) == frequencyHz.toStringAsFixed(1) &&
-        other.centsDeviation.toStringAsFixed(1) == centsDeviation.toStringAsFixed(1) &&
+        other.frequencyHz.toStringAsFixed(1) ==
+            frequencyHz.toStringAsFixed(1) &&
+        other.centsDeviation.toStringAsFixed(1) ==
+            centsDeviation.toStringAsFixed(1) &&
         other.confidence == confidence;
   }
 
   @override
   int get hashCode => Object.hash(
-        noteName,
-        octave,
-        state,
-        frequencyHz.toStringAsFixed(1),
-        centsDeviation.toStringAsFixed(1),
-        confidence,
-      );
+    noteName,
+    octave,
+    state,
+    frequencyHz.toStringAsFixed(1),
+    centsDeviation.toStringAsFixed(1),
+    confidence,
+  );
 }
