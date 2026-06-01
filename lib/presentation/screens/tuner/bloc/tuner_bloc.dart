@@ -47,7 +47,9 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
     await _subscription?.cancel();
     _subscription = null;
     _subscription = _mockStream().listen(
-      (s) => add(PitchReceived(s.frequencyHz, s.centsDeviation)),
+      (s) => add(PitchReceived(s.frequencyHz, s.centsDeviation, confidence: 0.95)),
+      onError: (Object error, StackTrace stack) => add(const StopTuner()),
+      cancelOnError: true,
     );
   }
 
@@ -63,6 +65,7 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
   }
 
   void _onPitchReceived(PitchReceived event, Emitter<TunerDisplayState> emit) {
+    if (event.confidence < AudioConstants.minConfidence) return;
     emit(TunerListening(
       pitch: _pitchFromCents(event.frequencyHz, event.centsDeviation),
       config: _config,
@@ -79,7 +82,9 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
   }
 
   void _onStringSelected(StringSelected event, Emitter<TunerDisplayState> emit) {
-    _config = _config.copyWith(targetString: event.stringNote);
+    _config = event.stringNote == null
+        ? _config.copyWith(clearTargetString: true)
+        : _config.copyWith(targetString: event.stringNote);
     if (state is TunerListening) {
       final s = state as TunerListening;
       emit(TunerListening(
@@ -124,6 +129,8 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState> {
     final TunerState state;
     if (cents.abs() <= AudioConstants.inTuneThresholdCents) {
       state = TunerState.inTune;
+    } else if (cents.abs() <= AudioConstants.nearTuneThresholdCents) {
+      state = TunerState.nearTune;
     } else if (cents < 0) {
       state = TunerState.tooLow;
     } else {

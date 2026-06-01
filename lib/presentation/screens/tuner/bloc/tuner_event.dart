@@ -16,11 +16,14 @@ final class StopTuner extends TunerEvent {
 }
 
 final class PitchReceived extends TunerEvent {
-  const PitchReceived(this.frequencyHz, this.centsDeviation);
+  const PitchReceived(this.frequencyHz, this.centsDeviation, {this.confidence = 1.0});
   final double frequencyHz;
   final double centsDeviation;
+  // Fiabilité de la détection [0.0–1.0]. En dessous de AudioConstants.minConfidence
+  // l'émission est ignorée par le BLoC (Phase 9 : valeur réelle depuis l'Isolate).
+  final double confidence;
   @override
-  List<Object?> get props => [frequencyHz, centsDeviation];
+  List<Object?> get props => [frequencyHz, centsDeviation, confidence];
 }
 
 final class ConfigChanged extends TunerEvent {

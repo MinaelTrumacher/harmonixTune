@@ -47,24 +47,32 @@ class _TunerNeedleWidgetState extends State<TunerNeedleWidget>
   }
 
   Color _needleColor(TunerState state) => switch (state) {
-        TunerState.inTune  => AppColors.inTune,
-        TunerState.tooLow  => AppColors.tooLow,
-        TunerState.tooHigh => AppColors.tooHigh,
-        TunerState.silent  => AppColors.textDisabled,
+        TunerState.inTune   => AppColors.inTune,
+        TunerState.nearTune => AppColors.primary,
+        TunerState.tooLow   => AppColors.tooLow,
+        TunerState.tooHigh  => AppColors.tooHigh,
+        TunerState.silent   => AppColors.textDisabled,
       };
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<TunerBloc, TunerDisplayState>(
       listener: (_, state) {
-        if (state is TunerListening) {
-          // centsDeviation ∈ [-50, 50] → _targetAngle ∈ [-π/2, π/2]
-          _targetAngle =
-              (state.pitch.centsDeviation.clamp(-50.0, 50.0) / 50.0) * (pi / 2);
-          _tunerState = state.pitch.state;
+        final newTunerState =
+            state is TunerListening ? state.pitch.state : TunerState.silent;
+        final newTarget = state is TunerListening
+            ? (state.pitch.centsDeviation.clamp(-50.0, 50.0) / 50.0) * (pi / 2)
+            : 0.0;
+        // setState forcé si l'état fonctionnel change — nécessaire pour la
+        // transition inTune → silent quand l'aiguille est centrée (delta ≈ 0,
+        // le Ticker ne déclencherait pas setState sans cette garde).
+        if (_tunerState != newTunerState) {
+          setState(() {
+            _tunerState = newTunerState;
+            _targetAngle = newTarget;
+          });
         } else {
-          _targetAngle = 0.0;
-          _tunerState = TunerState.silent;
+          _targetAngle = newTarget;
         }
       },
       child: RepaintBoundary(
@@ -84,7 +92,7 @@ class _TunerNeedleWidgetState extends State<TunerNeedleWidget>
 // ── Painter ────────────────────────────────────────────────────────────────
 
 class _NeedlePainter extends CustomPainter {
-  const _NeedlePainter({
+  _NeedlePainter({
     required this.displayAngle,
     required this.needleColor,
     required this.tunerState,
@@ -93,6 +101,38 @@ class _NeedlePainter extends CustomPainter {
   final double displayAngle;
   final Color needleColor;
   final TunerState tunerState;
+
+  // Paints statiques — propriétés constantes, créés une seule fois pour toutes les instances.
+  static final _arcPaint = Paint()
+    ..color = AppColors.surfaceHigh
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
+
+  static final _inTunePaint = Paint()
+    ..color = AppColors.inTune.withValues(alpha: 0.35)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 5
+    ..strokeCap = StrokeCap.round;
+
+  static final _majorGradPaint = Paint()
+    ..color = AppColors.textSecondary
+    ..strokeWidth = 1.5;
+
+  static final _minorGradPaint = Paint()
+    ..color = AppColors.textDisabled
+    ..strokeWidth = 1;
+
+  static final _pivot1 = Paint()..color = AppColors.surfaceHigh;
+  static final _pivot2 = Paint()..color = AppColors.divider;
+  static final _pivot3 = Paint()..color = AppColors.textSecondary;
+
+  // Paints dynamiques — dépendent de needleColor, mis à jour via shouldRepaint.
+  late final Paint _needleLinePaint = Paint()
+    ..color = needleColor
+    ..strokeWidth = 2
+    ..strokeCap = StrokeCap.round;
+
+  late final Paint _needleTipPaint = Paint()..color = needleColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -113,15 +153,11 @@ class _NeedlePainter extends CustomPainter {
   void _drawArc(Canvas canvas, Offset center, double radius) {
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      pi, pi, false,
-      Paint()
-        ..color = AppColors.surfaceHigh
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+      pi, pi, false, _arcPaint,
     );
   }
 
-  // Arc vert ±2 cents autour du centre (sous l'aiguille)
+  // Arc vert ±2 cents autour du centre (dessiné avant l'aiguille = en dessous visuellement)
   void _drawInTuneZone(Canvas canvas, Offset center, double radius) {
     const halfAngle = (2.0 / 50.0) * (pi / 2); // 2 cents en radians
     canvas.drawArc(
@@ -129,23 +165,12 @@ class _NeedlePainter extends CustomPainter {
       (3 * pi / 2) - halfAngle, // centre = 3π/2 (haut)
       halfAngle * 2,
       false,
-      Paint()
-        ..color = AppColors.inTune.withValues(alpha: 0.35)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 5
-        ..strokeCap = StrokeCap.round,
+      _inTunePaint,
     );
   }
 
-  // Graduations toutes les 10 cents, labels -50/-25/0/+25/+50
+  // Graduations toutes les 10 cents
   void _drawGraduations(Canvas canvas, Offset center, double radius) {
-    final majorPaint = Paint()
-      ..color = AppColors.textSecondary
-      ..strokeWidth = 1.5;
-    final minorPaint = Paint()
-      ..color = AppColors.textDisabled
-      ..strokeWidth = 1;
-
     for (int i = -50; i <= 50; i += 10) {
       final a = (3 * pi / 2) + (i / 50.0) * (pi / 2);
       final isMajor = i % 20 == 0;
@@ -153,7 +178,7 @@ class _NeedlePainter extends CustomPainter {
       canvas.drawLine(
         Offset(center.dx + inner * cos(a), center.dy + inner * sin(a)),
         Offset(center.dx + radius * cos(a), center.dy + radius * sin(a)),
-        isMajor ? majorPaint : minorPaint,
+        isMajor ? _majorGradPaint : _minorGradPaint,
       );
     }
   }
@@ -163,22 +188,14 @@ class _NeedlePainter extends CustomPainter {
     // displayAngle=0 → pointe vers le haut; -π/2 → gauche; +π/2 → droite
     final a = (3 * pi / 2) + displayAngle;
     final tip = Offset(center.dx + len * cos(a), center.dy + len * sin(a));
-
-    canvas.drawLine(
-      center, tip,
-      Paint()
-        ..color = needleColor
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round,
-    );
-    // Embout de l'aiguille
-    canvas.drawCircle(tip, 4, Paint()..color = needleColor);
+    canvas.drawLine(center, tip, _needleLinePaint);
+    canvas.drawCircle(tip, 4, _needleTipPaint);
   }
 
   void _drawPivot(Canvas canvas, Offset center) {
-    canvas.drawCircle(center, 7, Paint()..color = AppColors.surfaceHigh);
-    canvas.drawCircle(center, 5, Paint()..color = AppColors.divider);
-    canvas.drawCircle(center, 3, Paint()..color = AppColors.textSecondary);
+    canvas.drawCircle(center, 7, _pivot1);
+    canvas.drawCircle(center, 5, _pivot2);
+    canvas.drawCircle(center, 3, _pivot3);
   }
 
   @override

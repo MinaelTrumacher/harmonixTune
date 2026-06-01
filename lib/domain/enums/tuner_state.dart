@@ -1,1 +1,1 @@
-enum TunerState { silent, tooLow, inTune, tooHigh }
+enum TunerState { silent, tooLow, nearTune, inTune, tooHigh }

@@ -24,11 +24,9 @@ class StringSelectorWidget extends StatelessWidget {
           children: strings.map((note) {
             final isSelected = note == selected;
             return GestureDetector(
-              onTap: isAuto
-                  ? null
-                  : () => context.read<TunerBloc>().add(StringSelected(
-                        isSelected ? null : note,
-                      )),
+              onTap: () => context.read<TunerBloc>().add(
+                StringSelected(isSelected ? null : note),
+              ),
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
                 opacity: isAuto ? 0.4 : 1.0,

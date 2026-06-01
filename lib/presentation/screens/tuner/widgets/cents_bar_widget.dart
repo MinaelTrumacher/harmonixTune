@@ -42,10 +42,11 @@ class _CentsBarWidgetState extends State<CentsBarWidget>
   }
 
   Color _stateColor(TunerState s) => switch (s) {
-        TunerState.inTune  => AppColors.inTune,
-        TunerState.tooLow  => AppColors.tooLow,
-        TunerState.tooHigh => AppColors.tooHigh,
-        TunerState.silent  => AppColors.textDisabled,
+        TunerState.inTune   => AppColors.inTune,
+        TunerState.nearTune => AppColors.primary,
+        TunerState.tooLow   => AppColors.tooLow,
+        TunerState.tooHigh  => AppColors.tooHigh,
+        TunerState.silent   => AppColors.textDisabled,
       };
 
   @override
@@ -76,7 +77,7 @@ class _CentsBarWidgetState extends State<CentsBarWidget>
 // ── Painter ────────────────────────────────────────────────────────────────
 
 class _CentsBarPainter extends CustomPainter {
-  const _CentsBarPainter({
+  _CentsBarPainter({
     required this.centsDeviation,
     required this.indicatorColor,
   });
@@ -84,53 +85,67 @@ class _CentsBarPainter extends CustomPainter {
   final double centsDeviation;
   final Color indicatorColor;
 
+  // Shader du gradient — recréé uniquement si la largeur du widget change.
+  // Couleurs pré-calculées (withValues non utilisable en const).
+  static const _gradientColors = [
+    Color(0x995B8EF0), // AppColors.tooLow  @ alpha 0.6
+    AppColors.surfaceHigh,
+    Color(0x99F06050), // AppColors.tooHigh @ alpha 0.6
+  ];
+  static Shader? _barShader;
+  static double _cachedBarWidth = -1;
+
+  // Paints statiques — jamais modifiés après init.
+  static final _centerLinePaint = Paint()
+    ..color = AppColors.textSecondary
+    ..strokeWidth = 1.5;
+
+  // Paints dynamiques liés à indicatorColor — recalculés uniquement lors d'un
+  // changement de TunerState (rare), pas à chaque frame.
+  static Color _lastIndicatorColor = const Color(0x00000000);
+  static Paint? _haloPaint;
+  static Paint? _ballPaint;
+
   @override
   void paint(Canvas canvas, Size size) {
     const ballRadius = 8.0;
     final barY = size.height / 2;
     final barLeft = ballRadius;
-    final barRight = size.width - ballRadius;
-    final barWidth = barRight - barLeft;
+    final barWidth = size.width - 2 * ballRadius;
 
-    // Barre de fond — gradient bleu → gris → rouge
-    final shader = LinearGradient(
-      colors: [
-        AppColors.tooLow.withValues(alpha: 0.6),
-        AppColors.surfaceHigh,
-        AppColors.tooHigh.withValues(alpha: 0.6),
-      ],
-    ).createShader(Rect.fromLTWH(barLeft, barY - 2, barWidth, 4));
+    // ── Gradient bar ─────────────────────────────────────────────────────
+    if (barWidth != _cachedBarWidth) {
+      _barShader = const LinearGradient(colors: _gradientColors)
+          .createShader(Rect.fromLTWH(barLeft, barY - 2, barWidth, 4));
+      _cachedBarWidth = barWidth;
+    }
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(barLeft, barY - 2, barWidth, 4),
         const Radius.circular(2),
       ),
-      Paint()..shader = shader,
+      Paint()..shader = _barShader,
     );
 
-    // Marque centrale (0 cents)
+    // ── Marque centrale ───────────────────────────────────────────────────
     canvas.drawLine(
       Offset(size.width / 2, barY - 9),
       Offset(size.width / 2, barY + 9),
-      Paint()
-        ..color = AppColors.textSecondary
-        ..strokeWidth = 1.5,
+      _centerLinePaint,
     );
 
-    // Bille indicatrice
+    // ── Bille indicatrice ─────────────────────────────────────────────────
+    if (indicatorColor != _lastIndicatorColor) {
+      _haloPaint = Paint()..color = indicatorColor.withValues(alpha: 0.18);
+      _ballPaint = Paint()..color = indicatorColor;
+      _lastIndicatorColor = indicatorColor;
+    }
+
     final t = (centsDeviation + 50) / 100.0; // 0.0 → 1.0
     final x = barLeft + barWidth * t;
 
-    // Halo
-    canvas.drawCircle(
-      Offset(x, barY), ballRadius + 4,
-      Paint()..color = indicatorColor.withValues(alpha: 0.18),
-    );
-    // Bille principale
-    canvas.drawCircle(
-      Offset(x, barY), ballRadius,
-      Paint()..color = indicatorColor,
-    );
+    canvas.drawCircle(Offset(x, barY), ballRadius + 4, _haloPaint!);
+    canvas.drawCircle(Offset(x, barY), ballRadius, _ballPaint!);
   }
 
   @override

@@ -43,4 +43,20 @@ class PitchResult {
       state: state ?? this.state,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is PitchResult &&
+        other.frequencyHz == frequencyHz &&
+        other.noteName == noteName &&
+        other.octave == octave &&
+        other.centsDeviation == centsDeviation &&
+        other.confidence == confidence &&
+        other.state == state;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        frequencyHz, noteName, octave, centsDeviation, confidence, state);
 }
