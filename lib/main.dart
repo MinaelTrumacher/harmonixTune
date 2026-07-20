@@ -15,11 +15,18 @@ Future<void> main() async {
       WidgetsFlutterBinding.ensureInitialized();
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-      await FirebasePerformance.instance.setPerformanceCollectionEnabled(!kDebugMode);
-      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      await FirebasePerformance.instance.setPerformanceCollectionEnabled(
+        !kDebugMode,
+      );
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        !kDebugMode,
+      );
 
-      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
       PlatformDispatcher.instance.onError = (error, stack) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
@@ -27,6 +34,7 @@ Future<void> main() async {
 
       runApp(const HarmonixTuneApp());
     },
-    (error, stack) => FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    (error, stack) =>
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
   );
 }
