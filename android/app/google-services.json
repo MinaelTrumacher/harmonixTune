@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "111449505542",
+    "project_id": "harmonixtune-e6964",
+    "storage_bucket": "harmonixtune-e6964.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:111449505542:android:9d39de28a2f70aaaada887",
+        "android_client_info": {
+          "package_name": "com.example.harmonix_tune"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaislxv5WWQgsiXOi0rcvRcISJ9RoP1JA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
