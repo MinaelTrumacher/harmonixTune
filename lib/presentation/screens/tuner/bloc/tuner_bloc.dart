@@ -9,79 +9,92 @@ import '../../../../core/constants/audio_constants.dart';
 import '../../../../domain/entities/pitch_result.dart';
 import '../../../../domain/entities/tuning_configuration.dart';
 import '../../../../domain/enums/tuner_state.dart';
+import '../../../../domain/exceptions/audio_permission_exception.dart';
+import '../../../../domain/repositories/audio_repository.dart';
 import 'tuner_event.dart';
 import 'tuner_state.dart';
 
 class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     with WidgetsBindingObserver {
-  TunerBloc() : super(const TunerInitial()) {
+  TunerBloc(this._audioRepository) : super(const TunerInitial()) {
     WidgetsBinding.instance.addObserver(this);
     on<StartTuner>(_onStart);
     on<StopTuner>(_onStop);
     on<PitchReceived>(_onPitchReceived);
-    // restartable() : si un nouveau ConfigChanged arrive pendant qu'un autre
-    // est en cours de traitement (await cancel()), le précédent est annulé.
-    // Rend l'intention explicite et protège contre tout refactoring futur
-    // qui changerait le transformer par défaut.
+    on<PermissionDenied>(_onPermissionDenied);
     on<ConfigChanged>(_onConfigChanged, transformer: restartable());
     on<StringSelected>(_onStringSelected);
     on<IntelliTunerToggled>(_onIntelliTunerToggled);
     on<DebugCentsOverride>(_onDebugOverride);
   }
 
-  StreamSubscription<_MockSample>? _subscription;
+  final AudioRepository _audioRepository;
+  StreamSubscription<PitchResult>? _subscription;
   TuningConfiguration _config = const TuningConfiguration();
   bool _intelliTunerEnabled = false;
-  int _mockTick = 0;
 
-  // ── Mock stream ──────────────────────────────────────────────────────────
-  // Sera remplacé par AudioRepository.streamPitch() en Phase 9.
-  Stream<_MockSample> _mockStream() {
-    return Stream.periodic(const Duration(milliseconds: 16), (_) {
-      final cents = sin(_mockTick++ * 0.04) * 35.0;
-      return _MockSample(
-        frequencyHz: 329.6 + cents * 0.19,
-        centsDeviation: cents,
-      );
-    });
-  }
+  // ── Souscription au repo audio ────────────────────────────────────────────
 
-  Future<void> _subscribe() async {
+  Future<void> _subscribeToRepo() async {
     await _subscription?.cancel();
     _subscription = null;
-    _subscription = _mockStream().listen(
-      (s) {
-        if (!isClosed) {
-          add(PitchReceived(s.frequencyHz, s.centsDeviation, confidence: 0.95));
-        }
-      },
-      onError: (Object error, StackTrace stack) {
-        if (!isClosed) add(const StopTuner());
-      },
-      cancelOnError: true,
-    );
+    _subscription = _audioRepository
+        .streamPitch(_config)
+        .listen(
+          (result) {
+            if (!isClosed) add(PitchReceived(result));
+          },
+          onError: (Object error, StackTrace stack) {
+            if (isClosed) return;
+            if (error is AudioPermissionException) {
+              add(PermissionDenied(isPermanent: error.isPermanent));
+            } else {
+              add(const StopTuner());
+            }
+          },
+          cancelOnError: true,
+        );
   }
 
   // ── Handlers ─────────────────────────────────────────────────────────────
+
   Future<void> _onStart(StartTuner _, Emitter<TunerDisplayState> emit) async {
-    await _subscribe();
+    await _subscribeToRepo();
   }
 
   Future<void> _onStop(StopTuner _, Emitter<TunerDisplayState> emit) async {
     await _subscription?.cancel();
     _subscription = null;
+    await _audioRepository.stop();
     emit(const TunerInitial());
   }
 
   void _onPitchReceived(PitchReceived event, Emitter<TunerDisplayState> emit) {
-    if (event.confidence < AudioConstants.minConfidence) return;
+    final result = event.result;
+
+    // Scénario A2 — auto-activation Intelli-Tuner :
+    // Mode MANUEL + confiance insuffisante → activer le filtre IIR.
+    if (_config.targetString != null &&
+        result.confidence < AudioConstants.minConfidence &&
+        !_intelliTunerEnabled) {
+      _intelliTunerEnabled = true;
+      _audioRepository.updateConfig(_config.copyWith(intelliTunerActive: true));
+    }
+
     emit(
       TunerListening(
-        pitch: _pitchFromCents(event.frequencyHz, event.centsDeviation),
+        pitch: result,
         config: _config,
         intelliTunerEnabled: _intelliTunerEnabled,
       ),
     );
+  }
+
+  void _onPermissionDenied(
+    PermissionDenied event,
+    Emitter<TunerDisplayState> emit,
+  ) {
+    emit(TunerPermissionDeniedState(isPermanent: event.isPermanent));
   }
 
   Future<void> _onConfigChanged(
@@ -89,7 +102,7 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     Emitter<TunerDisplayState> emit,
   ) async {
     _config = event.config;
-    await _subscribe();
+    await _subscribeToRepo();
   }
 
   void _onStringSelected(
@@ -97,13 +110,14 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     Emitter<TunerDisplayState> emit,
   ) {
     _config = event.stringNote == null
-        ? _config.copyWith(clearTargetString: true)
+        ? _config.copyWith(clearTargetString: true, intelliTunerActive: false)
         : _config.copyWith(targetString: event.stringNote);
+    if (event.stringNote == null) _intelliTunerEnabled = false;
+
     if (state is TunerListening) {
-      final s = state as TunerListening;
       emit(
         TunerListening(
-          pitch: s.pitch,
+          pitch: (state as TunerListening).pitch,
           config: _config,
           intelliTunerEnabled: _intelliTunerEnabled,
         ),
@@ -116,11 +130,13 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     Emitter<TunerDisplayState> emit,
   ) {
     _intelliTunerEnabled = event.enabled;
+    _config = _config.copyWith(intelliTunerActive: event.enabled);
+    _audioRepository.updateConfig(_config);
+
     if (state is TunerListening) {
-      final s = state as TunerListening;
       emit(
         TunerListening(
-          pitch: s.pitch,
+          pitch: (state as TunerListening).pitch,
           config: _config,
           intelliTunerEnabled: _intelliTunerEnabled,
         ),
@@ -128,13 +144,14 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     }
   }
 
-  // Suspend le mock et émet une valeur fixe pour le slider de debug.
+  // Suspendu le stream et émet une valeur fixe (slider debug uniquement).
   Future<void> _onDebugOverride(
     DebugCentsOverride event,
     Emitter<TunerDisplayState> emit,
   ) async {
     await _subscription?.cancel();
     _subscription = null;
+    await _audioRepository.stop();
     emit(
       TunerListening(
         pitch: _pitchFromCents(329.6, event.cents),
@@ -144,7 +161,30 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // ── Cycle de vie app (Scénario A3) ───────────────────────────────────────
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // `state` ici = AppLifecycleState (paramètre).
+    // `this.state` = TunerDisplayState courant du BLoC.
+    if (state == AppLifecycleState.paused) {
+      if (!isClosed) add(const StopTuner());
+    } else if (state == AppLifecycleState.resumed &&
+        this.state is TunerListening) {
+      if (!isClosed) add(const StartTuner());
+    }
+  }
+
+  @override
+  Future<void> close() async {
+    WidgetsBinding.instance.removeObserver(this);
+    await _subscription?.cancel();
+    await _audioRepository.stop();
+    return super.close();
+  }
+
+  // ── Helper debug ──────────────────────────────────────────────────────────
+
   PitchResult _pitchFromCents(double hz, double cents) {
     final TunerState state;
     if (cents.abs() <= AudioConstants.inTuneThresholdCents) {
@@ -166,32 +206,6 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     );
   }
 
-  // ── Cycle de vie app ─────────────────────────────────────────────────────
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      // App en arrière-plan : couper le stream (Green IT + RGPD Phase 9).
-      _subscription?.cancel();
-      _subscription = null;
-    } else if (state == AppLifecycleState.resumed &&
-        this.state is TunerListening) {
-      // this.state = état BLoC courant (TunerListening/TunerInitial)
-      // state    = AppLifecycleState reçu en paramètre
-      // Retour au premier plan : relancer uniquement si on était en écoute.
-      _subscribe();
-    }
-  }
-
-  @override
-  Future<void> close() async {
-    WidgetsBinding.instance.removeObserver(this);
-    await _subscription?.cancel();
-    return super.close();
-  }
-}
-
-class _MockSample {
-  const _MockSample({required this.frequencyHz, required this.centsDeviation});
-  final double frequencyHz;
-  final double centsDeviation;
+  // ignore: unused_field — conservé pour la lisibilité de la formule debug
+  static final double _unused = sin(0);
 }
