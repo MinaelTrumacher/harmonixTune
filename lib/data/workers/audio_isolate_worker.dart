@@ -2,6 +2,8 @@ import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
 import '../../core/constants/audio_constants.dart';
 import '../../domain/entities/pitch_result.dart';
 import '../../domain/entities/tuning_configuration.dart';
@@ -77,6 +79,19 @@ void audioIsolateEntryPoint(SendPort mainSendPort) {
 
 // ── Fonctions privées top-level (accessibles depuis l'Isolate) ────────────────
 
+/// Décide si une détection doit être transmise au thread principal (BUG-01).
+///
+/// Mode AUTO (pas de corde cible) : une détection sous le seuil de confiance
+/// est ignorée pour ne pas afficher de note peu fiable. Mode MANUEL (corde
+/// cible sélectionnée) : toute détection est transmise, y compris sous le
+/// seuil — c'est justement le signal qui permet au `TunerBloc` d'activer
+/// l'auto-Intelli-Tuner (scénario A2/ITN-01).
+@visibleForTesting
+bool shouldForwardPitch(double confidence, TuningConfiguration config) {
+  final belowConfidence = confidence < AudioConstants.minConfidence;
+  return !belowConfidence || config.targetString != null;
+}
+
 IirBandpassFilter? _buildFilter(TuningConfiguration config) {
   if (!config.intelliTunerActive || config.targetString == null) return null;
   final centerHz = AudioConstants.stringFrequencies[config.targetString];
@@ -106,9 +121,8 @@ void _processBuffer(
   filter?.process(samples);
 
   final detected = detector.detect(samples);
-  if (detected == null || detected.confidence < AudioConstants.minConfidence) {
-    return;
-  }
+  if (detected == null) return;
+  if (!shouldForwardPitch(detected.confidence, config)) return;
 
   final note = _noteFromHz(detected.f0Hz, config.referencePitchHz);
   final state = _stateFromCents(note.centsDeviation);

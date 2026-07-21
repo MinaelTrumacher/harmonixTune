@@ -56,7 +56,6 @@ class DefaultFirebaseOptions {
     projectId: 'harmonixtune-e6964',
     storageBucket: 'harmonixtune-e6964.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCnuF4dANlMLvXJHBw-yHkewuXWoeXL5y8',
     appId: '1:111449505542:ios:51c9e04fd7ca0768ada887',

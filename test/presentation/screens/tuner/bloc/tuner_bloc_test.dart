@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -131,6 +132,82 @@ void main() {
       expect: () => [isA<TunerInitial>()],
       verify: (_) =>
           verify(() => mockRepo.stop()).called(greaterThanOrEqualTo(1)),
+    );
+  });
+
+  // ── Cycle de vie app (BUG-02) ────────────────────────────────────────────
+
+  group('didChangeAppLifecycleState', () {
+    blocTest<TunerBloc, TunerDisplayState>(
+      'reprend l\'écoute au resume si en écoute avant la pause',
+      build: makeBloc,
+      seed: () => TunerListening(
+        pitch: makePitch(),
+        config: const TuningConfiguration(),
+        intelliTunerEnabled: false,
+      ),
+      act: (b) async {
+        b.didChangeAppLifecycleState(AppLifecycleState.paused);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        b.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      },
+      wait: const Duration(milliseconds: 50),
+      verify: (_) {
+        verify(() => mockRepo.stop()).called(greaterThanOrEqualTo(1));
+        verify(() => mockRepo.streamPitch(any())).called(1);
+      },
+    );
+
+    blocTest<TunerBloc, TunerDisplayState>(
+      'ne relance pas si l\'arrêt était manuel avant la pause',
+      build: makeBloc, // état initial TunerInitial (pas TunerListening)
+      act: (b) async {
+        b.didChangeAppLifecycleState(AppLifecycleState.paused);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        b.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      },
+      wait: const Duration(milliseconds: 50),
+      verify: (_) => verifyNever(() => mockRepo.streamPitch(any())),
+    );
+
+    blocTest<TunerBloc, TunerDisplayState>(
+      'atteint TunerPermissionDeniedState si la permission est révoquée '
+      'pendant la pause (PERM-02/03/04)',
+      build: makeBloc,
+      seed: () => TunerListening(
+        pitch: makePitch(),
+        config: const TuningConfiguration(),
+        intelliTunerEnabled: false,
+      ),
+      act: (b) async {
+        b.didChangeAppLifecycleState(AppLifecycleState.paused);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        // Permission révoquée entre-temps (ex. via les réglages système).
+        when(
+          () => mockRepo.streamPitch(any()),
+        ).thenAnswer((_) => Stream.error(const AudioPermissionException()));
+        b.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      },
+      wait: const Duration(milliseconds: 50),
+      expect: () => [isA<TunerInitial>(), isA<TunerPermissionDeniedState>()],
+    );
+
+    blocTest<TunerBloc, TunerDisplayState>(
+      'sérialise StartTuner/StopTuner rapprochés sans les entrelacer',
+      build: makeBloc,
+      act: (b) {
+        // Enchaînement sans attendre entre les add() — simule un
+        // changement d'onglet rapide (BUG-03) ou un double-tap Home.
+        b.add(const StartTuner());
+        b.add(const StopTuner());
+        b.add(const StartTuner());
+      },
+      wait: const Duration(milliseconds: 50),
+      verify: (_) => verifyInOrder([
+        () => mockRepo.streamPitch(any()),
+        () => mockRepo.stop(),
+        () => mockRepo.streamPitch(any()),
+      ]),
     );
   });
 
