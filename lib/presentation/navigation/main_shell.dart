@@ -20,7 +20,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const TunerScreen(),
+      TunerScreen(isActive: _currentIndex == 0),
       PresetsScreen(repository: widget.tuningProfileRepository),
       const ChordsScreen(),
     ];

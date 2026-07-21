@@ -88,14 +88,10 @@ jobs:
       - name: Build release APK (flavor staging)
         run: flutter build apk --release --flavor staging -t lib/main_staging.dart
 
-      # TODO : remplacer appId par celui de l'app "staging" (package
-      # com.example.harmonix_tune.staging) une fois enregistrée dans Firebase
-      # — cf. docs/FLAVORS_SETUP.md §5. L'appId actuel correspond au flavor
-      # prod (com.example.harmonix_tune) et ne matchera pas cet APK.
       - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: "1:111449505542:android:9d39de28a2f70aaaada887"
+          appId: "1:111449505542:android:b12a6491e5ca16abada887"
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: testers
           file: build/app/outputs/flutter-apk/app-staging-release.apk

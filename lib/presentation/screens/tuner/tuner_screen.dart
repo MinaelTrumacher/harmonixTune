@@ -27,17 +27,52 @@ String _centsLabel(TunerDisplayState state) {
   return cents.abs() < 0.5 ? 'tune' : cents.toStringAsFixed(1);
 }
 
-class TunerScreen extends StatelessWidget {
-  const TunerScreen({super.key});
+// Injection par constructeur (même principe que `TunerBloc(mockRepo)` dans
+// les tests) : permet aux tests widget d'injecter un bloc/repo fake sans
+// passer par un vrai microphone.
+class TunerScreen extends StatefulWidget {
+  const TunerScreen({
+    super.key,
+    this.isActive = true,
+    TunerBloc Function()? blocBuilder,
+  }) : _blocBuilder = blocBuilder;
+
+  /// Onglet Tuner visible à l'écran (BUG-03) — piloté par `MainShell`.
+  final bool isActive;
+  final TunerBloc Function()? _blocBuilder;
+
+  @override
+  State<TunerScreen> createState() => _TunerScreenState();
+}
+
+class _TunerScreenState extends State<TunerScreen> {
+  late final TunerBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = (widget._blocBuilder ??
+        () => TunerBloc(AudioRepositoryImpl(RecordMicrophoneDataSource())))();
+    if (widget.isActive) _bloc.add(const StartTuner());
+  }
+
+  @override
+  void didUpdateWidget(covariant TunerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      _bloc.add(widget.isActive ? const StartTuner() : const StopTuner());
+    }
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          TunerBloc(AudioRepositoryImpl(RecordMicrophoneDataSource()))
-            ..add(const StartTuner()),
-      child: const _TunerView(),
-    );
+    return BlocProvider.value(value: _bloc, child: const _TunerView());
   }
 }
 
