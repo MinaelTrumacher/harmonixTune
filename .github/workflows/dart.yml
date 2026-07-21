@@ -44,3 +44,11 @@ jobs:
       # 7. Exécution des tests unitaires
       - name: Run unit tests
         run: flutter test --coverage
+
+      # 8. Publication de la couverture de tests sur Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
