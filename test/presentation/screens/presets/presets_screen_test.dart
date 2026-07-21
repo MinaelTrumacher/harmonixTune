@@ -29,9 +29,7 @@ void main() {
     testWidgets('affiche le message "Aucun profil" quand la liste est vide', (
       tester,
     ) async {
-      when(
-        () => mockRepo.watchAll(),
-      ).thenAnswer((_) => Stream.value(const []));
+      when(() => mockRepo.watchAll()).thenAnswer((_) => Stream.value(const []));
 
       await tester.pumpWidget(wrap(PresetsScreen(repository: mockRepo)));
       await tester.pumpAndSettle();
@@ -60,25 +58,24 @@ void main() {
     testWidgets('affiche une tuile par profil avec nom et cordes', (
       tester,
     ) async {
-      when(
-        () => mockRepo.watchAll(),
-      ).thenAnswer((_) => Stream.value(profiles));
+      when(() => mockRepo.watchAll()).thenAnswer((_) => Stream.value(profiles));
 
       await tester.pumpWidget(wrap(PresetsScreen(repository: mockRepo)));
       await tester.pumpAndSettle();
 
       expect(find.text('Standard'), findsOneWidget);
       expect(find.text('Drop D'), findsOneWidget);
-      expect(find.textContaining('E2 - A2 - D3 - G3 - B3 - E4'), findsOneWidget);
+      expect(
+        find.textContaining('E2 - A2 - D3 - G3 - B3 - E4'),
+        findsOneWidget,
+      );
       expect(find.text('Aucun profil d\'accordage'), findsNothing);
     });
 
     testWidgets('appuyer sur supprimer appelle repository.delete(id)', (
       tester,
     ) async {
-      when(
-        () => mockRepo.watchAll(),
-      ).thenAnswer((_) => Stream.value(profiles));
+      when(() => mockRepo.watchAll()).thenAnswer((_) => Stream.value(profiles));
       when(() => mockRepo.delete(any())).thenAnswer((_) async {});
 
       await tester.pumpWidget(wrap(PresetsScreen(repository: mockRepo)));
@@ -92,12 +89,8 @@ void main() {
   });
 
   group('PresetsScreen — navigation', () {
-    testWidgets('le bouton flottant ouvre ProfileEditorScreen', (
-      tester,
-    ) async {
-      when(
-        () => mockRepo.watchAll(),
-      ).thenAnswer((_) => Stream.value(const []));
+    testWidgets('le bouton flottant ouvre ProfileEditorScreen', (tester) async {
+      when(() => mockRepo.watchAll()).thenAnswer((_) => Stream.value(const []));
 
       await tester.pumpWidget(wrap(PresetsScreen(repository: mockRepo)));
       await tester.pumpAndSettle();

@@ -40,28 +40,29 @@ void main() {
     ),
   );
 
-  testWidgets('mode AUTO (targetString null) : les 6 cordes en opacité réduite', (
-    tester,
-  ) async {
-    when(() => bloc.state).thenReturn(
-      const TunerListening(
-        pitch: _pitch,
-        config: TuningConfiguration(),
-        intelliTunerEnabled: false,
-      ),
-    );
+  testWidgets(
+    'mode AUTO (targetString null) : les 6 cordes en opacité réduite',
+    (tester) async {
+      when(() => bloc.state).thenReturn(
+        const TunerListening(
+          pitch: _pitch,
+          config: TuningConfiguration(),
+          intelliTunerEnabled: false,
+        ),
+      );
 
-    await tester.pumpWidget(wrap());
+      await tester.pumpWidget(wrap());
 
-    for (final note in ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']) {
-      expect(find.text(note), findsOneWidget);
-    }
-    final opacities = tester
-        .widgetList<AnimatedOpacity>(find.byType(AnimatedOpacity))
-        .map((w) => w.opacity)
-        .toSet();
-    expect(opacities, {0.4});
-  });
+      for (final note in ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']) {
+        expect(find.text(note), findsOneWidget);
+      }
+      final opacities = tester
+          .widgetList<AnimatedOpacity>(find.byType(AnimatedOpacity))
+          .map((w) => w.opacity)
+          .toSet();
+      expect(opacities, {0.4});
+    },
+  );
 
   testWidgets('corde sélectionnée : opacité pleine (1.0)', (tester) async {
     when(() => bloc.state).thenReturn(

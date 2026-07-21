@@ -50,21 +50,12 @@ void main() {
   // de la calibration), ce qui aurait rendu un test d'intégration fragile.
   group('shouldForwardPitch', () {
     test('mode AUTO (targetString null) : confiance suffisante → transmis', () {
-      expect(
-        shouldForwardPitch(0.90, const TuningConfiguration()),
-        isTrue,
-      );
+      expect(shouldForwardPitch(0.90, const TuningConfiguration()), isTrue);
     });
 
-    test(
-      'mode AUTO (targetString null) : confiance faible → non transmis',
-      () {
-        expect(
-          shouldForwardPitch(0.60, const TuningConfiguration()),
-          isFalse,
-        );
-      },
-    );
+    test('mode AUTO (targetString null) : confiance faible → non transmis', () {
+      expect(shouldForwardPitch(0.60, const TuningConfiguration()), isFalse);
+    });
 
     test(
       'mode MANUEL (targetString défini) : confiance faible → transmis '
@@ -82,10 +73,7 @@ void main() {
 
     test('mode MANUEL : confiance suffisante → transmis', () {
       expect(
-        shouldForwardPitch(
-          0.95,
-          const TuningConfiguration(targetString: 'E2'),
-        ),
+        shouldForwardPitch(0.95, const TuningConfiguration(targetString: 'E2')),
         isTrue,
       );
     });

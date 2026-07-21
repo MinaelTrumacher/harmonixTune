@@ -42,11 +42,7 @@ void main() {
     home: Scaffold(
       body: BlocProvider<TunerBloc>.value(
         value: bloc,
-        child: const SizedBox(
-          width: 300,
-          height: 60,
-          child: CentsBarWidget(),
-        ),
+        child: const SizedBox(width: 300, height: 60, child: CentsBarWidget()),
       ),
     ),
   );

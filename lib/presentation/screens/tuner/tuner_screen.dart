@@ -51,7 +51,8 @@ class _TunerScreenState extends State<TunerScreen> {
   @override
   void initState() {
     super.initState();
-    _bloc = (widget._blocBuilder ??
+    _bloc =
+        (widget._blocBuilder ??
         () => TunerBloc(AudioRepositoryImpl(RecordMicrophoneDataSource())))();
     if (widget.isActive) _bloc.add(const StartTuner());
   }

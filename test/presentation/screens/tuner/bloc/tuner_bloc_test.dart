@@ -183,16 +183,13 @@ void main() {
         b.didChangeAppLifecycleState(AppLifecycleState.paused);
         await Future<void>.delayed(const Duration(milliseconds: 20));
         // Permission révoquée entre-temps (ex. via les réglages système).
-        when(() => mockRepo.streamPitch(any())).thenAnswer(
-          (_) => Stream.error(const AudioPermissionException()),
-        );
+        when(
+          () => mockRepo.streamPitch(any()),
+        ).thenAnswer((_) => Stream.error(const AudioPermissionException()));
         b.didChangeAppLifecycleState(AppLifecycleState.resumed);
       },
       wait: const Duration(milliseconds: 50),
-      expect: () => [
-        isA<TunerInitial>(),
-        isA<TunerPermissionDeniedState>(),
-      ],
+      expect: () => [isA<TunerInitial>(), isA<TunerPermissionDeniedState>()],
     );
 
     blocTest<TunerBloc, TunerDisplayState>(

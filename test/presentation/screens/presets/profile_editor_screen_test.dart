@@ -128,10 +128,7 @@ void main() {
     testWidgets(
       'le bouton de suppression disparaît à la limite basse de 3 cordes',
       (tester) async {
-        await pumpTall(
-          tester,
-          wrap(ProfileEditorScreen(repository: mockRepo)),
-        );
+        await pumpTall(tester, wrap(ProfileEditorScreen(repository: mockRepo)));
 
         // 6 cordes par défaut → 3 suppressions pour atteindre le min (3).
         for (var i = 0; i < 3; i++) {
@@ -146,24 +143,20 @@ void main() {
   });
 
   group('ProfileEditorScreen — validation et sauvegarde', () {
-    testWidgets(
-      'nom vide → message d\'erreur affiché, save() jamais appelé',
-      (tester) async {
-        await pumpTall(
-          tester,
-          wrap(ProfileEditorScreen(repository: mockRepo)),
-        );
+    testWidgets('nom vide → message d\'erreur affiché, save() jamais appelé', (
+      tester,
+    ) async {
+      await pumpTall(tester, wrap(ProfileEditorScreen(repository: mockRepo)));
 
-        await tester.tap(find.text('Enregistrer le profil'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Enregistrer le profil'));
+      await tester.pumpAndSettle();
 
-        expect(
-          find.text('Le nom du profil doit contenir entre 3 et 50 caractères.'),
-          findsOneWidget,
-        );
-        verifyNever(() => mockRepo.save(any()));
-      },
-    );
+      expect(
+        find.text('Le nom du profil doit contenir entre 3 et 50 caractères.'),
+        findsOneWidget,
+      );
+      verifyNever(() => mockRepo.save(any()));
+    });
 
     testWidgets('nom valide → save() appelé et l\'écran se ferme (pop)', (
       tester,
@@ -176,8 +169,7 @@ void main() {
               builder: (context) => ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) =>
-                        ProfileEditorScreen(repository: mockRepo),
+                    builder: (_) => ProfileEditorScreen(repository: mockRepo),
                   ),
                 ),
                 child: const Text('open-editor'),

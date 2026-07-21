@@ -40,9 +40,7 @@ void main() {
     ),
   );
 
-  testWidgets('état initial (hors écoute) : switch désactivé', (
-    tester,
-  ) async {
+  testWidgets('état initial (hors écoute) : switch désactivé', (tester) async {
     when(() => bloc.state).thenReturn(const TunerInitial());
 
     await tester.pumpWidget(wrap());
@@ -99,8 +97,6 @@ void main() {
     await tester.pumpWidget(wrap());
     await tester.tap(find.byType(Switch));
 
-    verify(
-      () => bloc.add(const IntelliTunerToggled(enabled: true)),
-    ).called(1);
+    verify(() => bloc.add(const IntelliTunerToggled(enabled: true))).called(1);
   });
 }

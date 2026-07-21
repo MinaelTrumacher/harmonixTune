@@ -64,7 +64,8 @@ void main() {
     ) async {
       await useTallSurface(tester);
       await tester.pumpWidget(buildApp(isActive: true));
-      tester.takeException(); // overflow de rendu, sans rapport (cf. note ci-dessus)
+      tester
+          .takeException(); // overflow de rendu, sans rapport (cf. note ci-dessus)
       await tester.pump(const Duration(milliseconds: 20));
 
       verify(() => mockRepo.streamPitch(any())).called(1);
@@ -117,23 +118,20 @@ void main() {
       verify(() => mockBloc.add(const StopTuner())).called(1);
     });
 
-    testWidgets(
-      'sérialise Start/Stop sans les entrelacer sur un changement '
-      'd\'onglet rapide (A→B→A)',
-      (tester) async {
-        await useTallSurface(tester);
-        await tester.pumpWidget(buildApp(isActive: true));
-        tester.takeException();
+    testWidgets('sérialise Start/Stop sans les entrelacer sur un changement '
+        'd\'onglet rapide (A→B→A)', (tester) async {
+      await useTallSurface(tester);
+      await tester.pumpWidget(buildApp(isActive: true));
+      tester.takeException();
 
-        await tester.pumpWidget(buildApp(isActive: false));
-        await tester.pumpWidget(buildApp(isActive: true));
+      await tester.pumpWidget(buildApp(isActive: false));
+      await tester.pumpWidget(buildApp(isActive: true));
 
-        verifyInOrder([
-          () => mockBloc.add(const StartTuner()),
-          () => mockBloc.add(const StopTuner()),
-          () => mockBloc.add(const StartTuner()),
-        ]);
-      },
-    );
+      verifyInOrder([
+        () => mockBloc.add(const StartTuner()),
+        () => mockBloc.add(const StopTuner()),
+        () => mockBloc.add(const StartTuner()),
+      ]);
+    });
   });
 }

@@ -199,8 +199,7 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     if (state == AppLifecycleState.paused) {
       _wasListeningBeforePause = this.state is TunerListening;
       if (!isClosed) add(const StopTuner());
-    } else if (state == AppLifecycleState.resumed &&
-        _wasListeningBeforePause) {
+    } else if (state == AppLifecycleState.resumed && _wasListeningBeforePause) {
       _wasListeningBeforePause = false;
       if (!isClosed) add(const StartTuner());
     }
