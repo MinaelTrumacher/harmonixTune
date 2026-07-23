@@ -184,7 +184,7 @@ Statut à remplir lors de l'exécution : ✅ OK · ❌ KO (renvoie vers un ticke
 
 - **Étapes** : recevoir un appel pendant que l'app écoute
 - **Résultat attendu** : l'app libère proprement le micro pendant l'appel, reprend l'écoute normalement après ; pas de crash
-- **Statut** : ⏭️ Non exécuté (à tester)
+- **Statut** : ✅ OK
 
 ### LIFE-04 — Rotation d'écran
 
