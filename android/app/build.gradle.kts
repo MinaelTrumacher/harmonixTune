@@ -35,6 +35,28 @@ android {
         versionName = flutter.versionName
     }
 
+    // Flavors dev/staging/prod — applicationId distinct pour dev/staging afin
+    // de pouvoir les installer côte à côte avec prod sur un même device.
+    // prod garde l'applicationId d'origine : c'est celui déjà enregistré dans
+    // Firebase (cf. docs/MONITORING_SETUP.md) et celui qui ira sur le Store.
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "harmonixTune Dev")
+        }
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".staging"
+            resValue("string", "app_name", "harmonixTune Staging")
+        }
+        create("prod") {
+            dimension = "environment"
+            resValue("string", "app_name", "harmonixTune")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

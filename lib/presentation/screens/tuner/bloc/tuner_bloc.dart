@@ -32,8 +32,34 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
   StreamSubscription<PitchResult>? _subscription;
   TuningConfiguration _config = const TuningConfiguration();
   bool _intelliTunerEnabled = false;
+  bool _wasListeningBeforePause = false;
+
+  // Chaque appel rallonge la chaîne d'un maillon ; le maillon précédent est
+  // éligible au GC dès qu'il complète (`.then` ne retient que son
+  // prédécesseur immédiat) — pas d'accumulation mémoire tant que Start/Stop
+  // restent des événements pilotés par l'utilisateur/le lifecycle (pas un
+  // flux haute fréquence).
+  Future<void> _lifecycleLock = Future.value();
 
   // ── Souscription au repo audio ────────────────────────────────────────────
+
+  /// Sérialise `_onStart`/`_onStop` entre eux : `Bloc.on<E>` ne sérialise les
+  /// événements qu'au sein d'un même type, donc sans cette file un
+  /// `StartTuner`/`StopTuner` rapproché (ex. changement d'onglet rapide,
+  /// double-tap Home) pourrait laisser deux souscriptions actives en
+  /// parallèle (isolate + capture micro orphelins).
+  Future<void> _guarded(Future<void> Function() action) {
+    // `isClosed` revérifié juste avant d'exécuter l'action : une action mise
+    // en file peut se retrouver à s'exécuter après `close()` (ex. widget
+    // démonté juste après un changement d'onglet) — sans ce guard on
+    // relancerait une souscription micro sur un bloc déjà fermé.
+    final result = _lifecycleLock.then<void>((_) async {
+      if (isClosed) return;
+      await action();
+    });
+    _lifecycleLock = result.catchError((_) {});
+    return result;
+  }
 
   Future<void> _subscribeToRepo() async {
     await _subscription?.cancel();
@@ -58,16 +84,16 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
-  Future<void> _onStart(StartTuner _, Emitter<TunerDisplayState> emit) async {
-    await _subscribeToRepo();
-  }
+  Future<void> _onStart(StartTuner _, Emitter<TunerDisplayState> emit) =>
+      _guarded(_subscribeToRepo);
 
-  Future<void> _onStop(StopTuner _, Emitter<TunerDisplayState> emit) async {
-    await _subscription?.cancel();
-    _subscription = null;
-    await _audioRepository.stop();
-    emit(const TunerInitial());
-  }
+  Future<void> _onStop(StopTuner _, Emitter<TunerDisplayState> emit) =>
+      _guarded(() async {
+        await _subscription?.cancel();
+        _subscription = null;
+        await _audioRepository.stop();
+        if (!isClosed) emit(const TunerInitial());
+      });
 
   void _onPitchReceived(PitchReceived event, Emitter<TunerDisplayState> emit) {
     final result = event.result;
@@ -167,10 +193,14 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // `state` ici = AppLifecycleState (paramètre).
     // `this.state` = TunerDisplayState courant du BLoC.
+    // Le flag est capturé AVANT `add(StopTuner())` : `_onStop` émet
+    // `TunerInitial`, donc tester `this.state` au moment du `resumed`
+    // donnerait toujours faux (BUG-02).
     if (state == AppLifecycleState.paused) {
+      _wasListeningBeforePause = this.state is TunerListening;
       if (!isClosed) add(const StopTuner());
-    } else if (state == AppLifecycleState.resumed &&
-        this.state is TunerListening) {
+    } else if (state == AppLifecycleState.resumed && _wasListeningBeforePause) {
+      _wasListeningBeforePause = false;
       if (!isClosed) add(const StartTuner());
     }
   }

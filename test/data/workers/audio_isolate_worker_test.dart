@@ -41,6 +41,54 @@ Future<({SendPort workerPort, Stream<dynamic> responses})> spawnWorker([
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 void main() {
+  // BUG-01 : décision de transmission d'une détection au thread principal.
+  // Testée directement (fonction @visibleForTesting) plutôt que via une
+  // vraie confiance basse synthétisée en isolate — un signal PCM produisant
+  // une confiance fiable en dessous de 0.85 mais non-null s'est avéré très
+  // instable à fabriquer avec le détecteur YIN actuel (comportement en
+  // "falaise" : quasi aucune valeur intermédiaire entre ~0.90 et null lors
+  // de la calibration), ce qui aurait rendu un test d'intégration fragile.
+  group('shouldForwardPitch', () {
+    test('mode AUTO (targetString null) : confiance suffisante → transmis', () {
+      expect(shouldForwardPitch(0.90, const TuningConfiguration()), isTrue);
+    });
+
+    test('mode AUTO (targetString null) : confiance faible → non transmis', () {
+      expect(shouldForwardPitch(0.60, const TuningConfiguration()), isFalse);
+    });
+
+    test(
+      'mode MANUEL (targetString défini) : confiance faible → transmis '
+      'quand même (signal d\'auto-activation Intelli-Tuner, scénario A2)',
+      () {
+        expect(
+          shouldForwardPitch(
+            0.60,
+            const TuningConfiguration(targetString: 'E2'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test('mode MANUEL : confiance suffisante → transmis', () {
+      expect(
+        shouldForwardPitch(0.95, const TuningConfiguration(targetString: 'E2')),
+        isTrue,
+      );
+    });
+
+    test('valeur exactement au seuil (0.85) → transmis (>= pas >)', () {
+      expect(
+        shouldForwardPitch(
+          AudioConstants.minConfidence,
+          const TuningConfiguration(),
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('AudioIsolateWorker — handshake', () {
     test('renvoie un SendPort après le spawn', () async {
       final mainPort = ReceivePort();

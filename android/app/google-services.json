@@ -23,6 +23,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:111449505542:android:75961272a61e87e6ada887",
+        "android_client_info": {
+          "package_name": "com.example.harmonix_tune.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaislxv5WWQgsiXOi0rcvRcISJ9RoP1JA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:111449505542:android:b12a6491e5ca16abada887",
+        "android_client_info": {
+          "package_name": "com.example.harmonix_tune.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaislxv5WWQgsiXOi0rcvRcISJ9RoP1JA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"
