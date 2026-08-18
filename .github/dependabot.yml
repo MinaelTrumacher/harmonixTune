@@ -1,0 +1,41 @@
+version: 2
+
+updates:
+  # Dépendances Dart/Flutter (pubspec.yaml)
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      # Regroupe les paquets Firebase dans une seule PR : ils évoluent
+      # ensemble (cf. docs/MONITORING_SETUP.md) et les tester séparément
+      # n'apporte rien.
+      firebase:
+        patterns:
+          - "firebase_*"
+
+  # Dépendances Gradle/Android (android/build.gradle.kts, plugins Firebase)
+  - package-ecosystem: "gradle"
+    directory: "/android"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "android"
+
+  # Actions utilisées dans les workflows CI/CD (.github/workflows/dart.yml)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"

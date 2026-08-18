@@ -1,0 +1,98 @@
+name: "Fiche anomalie"
+description: Consigner un dysfonctionnement détecté en recette, en bêta ou remonté par un testeur/utilisateur.
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de consigner une seule anomalie par ticket. Voir un exemple
+        complet dans `docsRendu/16_FICHE_ANOMALIE_BUG-02.md`.
+
+  - type: dropdown
+    id: severite
+    attributes:
+      label: Sévérité
+      description: Impact sur l'utilisation de l'application.
+      options:
+        - Bloquante (critère de sortie release, cf. CAHIER_DE_RECETTES.md §11)
+        - Majeure (fonctionnalité clé non opérante)
+        - Mineure (gênant, contournement possible)
+        - À confirmer
+    validations:
+      required: true
+
+  - type: input
+    id: composant
+    attributes:
+      label: Composant / fichier concerné
+      description: Si connu — écran, BLoC, repository, isolate...
+      placeholder: "ex. lib/presentation/screens/tuner/bloc/tuner_bloc.dart"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Source de détection
+      options:
+        - Recette manuelle (cahier de recettes)
+        - Retour testeur bêta (Firebase App Distribution)
+        - Sonde de production (Crashlytics / Performance)
+        - Revue de code / audit
+    validations:
+      required: true
+
+  - type: textarea
+    id: environnement
+    attributes:
+      label: Environnement
+      description: Device, OS, mode de build, version de l'app/flavor.
+      placeholder: |
+        Device : smartphone Android physique
+        Build : flutter run --release, flavor staging
+        Version : 1.2.0+2
+    validations:
+      required: true
+
+  - type: textarea
+    id: etapes
+    attributes:
+      label: Étapes de reproduction
+      description: Numérotées, aussi précises que possible.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Résultat attendu
+    validations:
+      required: true
+
+  - type: textarea
+    id: observe
+    attributes:
+      label: Résultat observé
+    validations:
+      required: true
+
+  - type: textarea
+    id: preuves
+    attributes:
+      label: Preuves (logs, stack trace, capture d'écran, lien Crashlytics)
+      description: Si l'anomalie est silencieuse (pas de crash), le préciser explicitement — cf. `docsRendu/16_FICHE_ANOMALIE_BUG-02.md`.
+    validations:
+      required: false
+
+  - type: textarea
+    id: scenarios
+    attributes:
+      label: Scénario(s) de recette impacté(s)
+      description: Référence(s) vers docs/CAHIER_DE_RECETTES.md si applicable (ex. LIFE-02, PERM-03).
+    validations:
+      required: false
