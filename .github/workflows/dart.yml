@@ -51,7 +51,11 @@ jobs:
         run: flutter test --coverage
 
       # 8. Publication de la couverture de tests sur Codecov
+      # Ignoré pour Dependabot : GitHub ne transmet pas les secrets du repo
+      # aux workflows déclenchés par Dependabot (pull_request), donc
+      # CODECOV_TOKEN est vide et l'upload échoue systématiquement.
       - name: Upload coverage to Codecov
+        if: github.actor != 'dependabot[bot]'
         uses: codecov/codecov-action@v5
         with:
           files: coverage/lcov.info
