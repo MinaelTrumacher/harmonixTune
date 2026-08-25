@@ -10,7 +10,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
 ## [Non publié]
 
 ### Ajouté
-- **US3 — Détection d'accords (moteur DSP, étapes 1-3/6 — cf.
+- **US3 — Détection d'accords (moteur DSP, étapes 1-4/6 — cf.
   `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : première brique du pipeline de
   reconnaissance d'accords en temps réel (polyphonie continue), indépendante
   du pipeline Tuner existant et pas encore branchée au Repository/UI
@@ -39,6 +39,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     `RecordMicrophoneDataSource`. Constantes `chord*` ajoutées à
     `AudioConstants` (tailles FFT/hop, seuils de silence et de confiance,
     paramètres du futur lissage anti-scintillement).
+  - `ChordRepository` (`domain/repositories`) et `ChordRepositoryImpl`
+    (`data/repositories`) : expose `streamChord()` côté Domain, miroir
+    d'`AudioRepositoryImpl` avec sa propre `MicrophoneDataSource` et son
+    propre Isolate (aucune mutualisation avec le Tuner).
 
 ### Modifié
 - CI : l'upload de couverture vers Codecov est désormais ignoré pour les
