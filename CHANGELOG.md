@@ -10,10 +10,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
 ## [Non publié]
 
 ### Ajouté
-- **US3 — Détection d'accords (moteur DSP, étapes 1-2/6 — cf.
+- **US3 — Détection d'accords (moteur DSP, étapes 1-3/6 — cf.
   `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : première brique du pipeline de
   reconnaissance d'accords en temps réel (polyphonie continue), indépendante
-  du pipeline Tuner existant et pas encore branchée à l'Isolate/UI
+  du pipeline Tuner existant et pas encore branchée au Repository/UI
   (`ChordsScreen` reste un placeholder à ce stade).
   - `ChordQuality` (`domain/enums`) : 4 qualités reconnues (majeur, mineur,
     7, maj7) avec leurs intervalles.
@@ -32,6 +32,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     réutilisée par le moteur d'accords, plutôt que de dupliquer une 3e
     table de noms de notes.
   - Nouvelle dépendance `fftea` (`^1.5.0+1`).
+  - `chord_isolate_worker.dart` (`data/workers`) : point d'entrée Isolate du
+    pipeline complet (cast PCM → RMS → fenêtrage → FFT → chromagramme →
+    matching), avec `ChordWindowAccumulator` pour obtenir un recouvrement de
+    50 % (fenêtre FFT 4096 à partir de 2 hops de 2048) sans modifier
+    `RecordMicrophoneDataSource`. Constantes `chord*` ajoutées à
+    `AudioConstants` (tailles FFT/hop, seuils de silence et de confiance,
+    paramètres du futur lissage anti-scintillement).
 
 ### Modifié
 - CI : l'upload de couverture vers Codecov est désormais ignoré pour les

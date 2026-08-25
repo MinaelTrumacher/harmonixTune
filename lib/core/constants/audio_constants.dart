@@ -22,4 +22,31 @@ abstract final class AudioConstants {
   // En dessous de cette limite, τ dépasse N/2 et l'algorithme YIN ne peut
   // pas fonctionner avec un buffer de 2048 samples.
   static const double minDetectableHz = sampleRate / (bufferSize / 2);
+
+  // ── Détection d'accords (US3) — cf. docs/STRATEGIE_DETECTION_ACCORDS.md ──
+
+  // Taille FFT (résolution) et hop (cadence de rafraîchissement). hopSize
+  // == bufferSize : le flux micro livre déjà des chunks de cette taille,
+  // donc l'Isolate accords obtient un recouvrement de 50 % en concaténant
+  // 2 hops consécutifs, sans toucher à RecordMicrophoneDataSource.
+  static const int chordFftSize = 4096;
+  static const int chordHopSize = bufferSize;
+
+  static const double chordSilenceRmsThreshold = 0.01;
+  static const double chordMinFreqHz = 70.0;
+  static const double chordMaxFreqHz = 3000.0;
+
+  // Score de similitude cosinus en dessous duquel un accord n'est pas
+  // considéré comme fiable. Calibré juste sous 2/3 ≈ 0,667, le score
+  // structurel entre un accord et son relatif majeur/mineur (ex. C/Am) —
+  // cf. chord_template_library_test.dart.
+  static const double chordMinConfidence = 0.65;
+
+  // Fraction du degré chromatique dominant (vecteur normalisé [0,1]) à
+  // partir de laquelle un degré est considéré comme une note active.
+  static const double chordActiveNoteThreshold = 0.5;
+
+  // Lissage anti-scintillement (ChordSmoother, couche Présentation).
+  static const int chordSmootherWindowCount = 3;
+  static const int chordHoldFramesOnIndetermination = 2;
 }
