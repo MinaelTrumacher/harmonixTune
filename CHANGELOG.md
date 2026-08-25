@@ -9,7 +9,35 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
 
 ## [Non publié]
 
-_Rien en attente — dernière version livrée : 1.2.0._
+### Ajouté
+- **US3 — Détection d'accords (moteur DSP, étapes 1-2/6 — cf.
+  `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : première brique du pipeline de
+  reconnaissance d'accords en temps réel (polyphonie continue), indépendante
+  du pipeline Tuner existant et pas encore branchée à l'Isolate/UI
+  (`ChordsScreen` reste un placeholder à ce stade).
+  - `ChordQuality` (`domain/enums`) : 4 qualités reconnues (majeur, mineur,
+    7, maj7) avec leurs intervalles.
+  - `ChordTemplateLibrary` (`data/workers`) : génération programmatique des
+    48 templates d'accords (12 racines × 4 qualités) et matching par
+    similitude cosinus.
+  - `SpectralPeakExtractor` (`data/workers`) : FFT temps réel via `fftea`
+    (fenêtrage de Hann), filtrage de bande [70 Hz, 3000 Hz] et exclusion du
+    bin DC avant le peak-picking, détection de maxima locaux affinés par
+    interpolation parabolique.
+  - `ChromagramBuilder` (`data/workers`) : repliement des pics en vecteur
+    chroma 12D (convention MIDI `C=0`) avec compression logarithmique,
+    pour éviter qu'une note jouée avec beaucoup d'attaque n'écrase les
+    autres degrés de l'accord.
+  - `NoteFrequencyConverter.chromaticScale` exposée publiquement pour être
+    réutilisée par le moteur d'accords, plutôt que de dupliquer une 3e
+    table de noms de notes.
+  - Nouvelle dépendance `fftea` (`^1.5.0+1`).
+
+### Modifié
+- CI : l'upload de couverture vers Codecov est désormais ignoré pour les
+  pull requests ouvertes par Dependabot — `CODECOV_TOKEN` n'est pas transmis
+  aux workflows déclenchés par Dependabot, ce qui faisait systématiquement
+  échouer cette étape sur les PRs de mise à jour de dépendances.
 
 ## [1.2.0] - 2026-07-21
 
