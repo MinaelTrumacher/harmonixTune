@@ -22,7 +22,7 @@ class _MainShellState extends State<MainShell> {
     final screens = [
       TunerScreen(isActive: _currentIndex == 0),
       PresetsScreen(repository: widget.tuningProfileRepository),
-      const ChordsScreen(),
+      ChordsScreen(isActive: _currentIndex == 2),
     ];
 
     return Scaffold(

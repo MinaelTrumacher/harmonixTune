@@ -10,11 +10,12 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
 ## [Non publié]
 
 ### Ajouté
-- **US3 — Détection d'accords (moteur DSP + Présentation, étapes 1-5/6 —
-  cf. `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : pipeline de reconnaissance
-  d'accords en temps réel (polyphonie continue) quasiment complet côté
-  logique, indépendant du pipeline Tuner existant et pas encore branché à
-  l'UI (`ChordsScreen` reste un placeholder à ce stade).
+- **US3 — Détection d'accords (étapes 1-6/6, cf.
+  `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : reconnaissance d'accords en
+  temps réel (polyphonie continue) utilisable de bout en bout dans
+  l'application — micro réel → FFT → chromagramme → matching → lissage →
+  affichage. Seuls le diagramme de doigté guitare et les annonces
+  vocales `Semantics` restent différés (étape 7).
   - `ChordQuality` (`domain/enums`) : 4 qualités reconnues (majeur, mineur,
     7, maj7) avec leurs intervalles.
   - `ChordTemplateLibrary` (`data/workers`) : génération programmatique des
@@ -50,6 +51,11 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
   - `ChordDetectorBloc` : miroir de `TunerBloc`, avec la gestion du cycle
     de vie applicatif et la sérialisation Start/Stop (équivalents BUG-02 /
     BUG-03) branchées dès ce commit plutôt qu'ajoutées après coup.
+  - `ChordsScreen` (onglet « Chords ») : remplace le placeholder, branché
+    dans `MainShell` avec le même mécanisme `isActive` que le Tuner.
+    `ChordNameDisplay` distingue visuellement 3 états (accord confirmé,
+    indéterminé, silence) ; `ChromaBarWidget` visualise les 12 degrés du
+    chromagramme avec mise en évidence des notes actives.
 
 ### Modifié
 - CI : l'upload de couverture vers Codecov est désormais ignoré pour les
