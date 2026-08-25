@@ -10,11 +10,11 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
 ## [Non publié]
 
 ### Ajouté
-- **US3 — Détection d'accords (moteur DSP, étapes 1-4/6 — cf.
-  `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : première brique du pipeline de
-  reconnaissance d'accords en temps réel (polyphonie continue), indépendante
-  du pipeline Tuner existant et pas encore branchée au Repository/UI
-  (`ChordsScreen` reste un placeholder à ce stade).
+- **US3 — Détection d'accords (moteur DSP + Présentation, étapes 1-5/6 —
+  cf. `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : pipeline de reconnaissance
+  d'accords en temps réel (polyphonie continue) quasiment complet côté
+  logique, indépendant du pipeline Tuner existant et pas encore branché à
+  l'UI (`ChordsScreen` reste un placeholder à ce stade).
   - `ChordQuality` (`domain/enums`) : 4 qualités reconnues (majeur, mineur,
     7, maj7) avec leurs intervalles.
   - `ChordTemplateLibrary` (`data/workers`) : génération programmatique des
@@ -43,6 +43,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     (`data/repositories`) : expose `streamChord()` côté Domain, miroir
     d'`AudioRepositoryImpl` avec sa propre `MicrophoneDataSource` et son
     propre Isolate (aucune mutualisation avec le Tuner).
+  - `ChordSmoother` (`presentation/screens/chords/bloc`) : filtre
+    anti-scintillement — silence immédiat (sans hold), majorité ≥2/3 sur
+    la fenêtre glissante pour confirmer un accord, hold de l'accord
+    précédent en cas d'indécision avant bascule sur l'état indéterminé.
+  - `ChordDetectorBloc` : miroir de `TunerBloc`, avec la gestion du cycle
+    de vie applicatif et la sérialisation Start/Stop (équivalents BUG-02 /
+    BUG-03) branchées dès ce commit plutôt qu'ajoutées après coup.
 
 ### Modifié
 - CI : l'upload de couverture vers Codecov est désormais ignoré pour les

@@ -1,12 +1,13 @@
 # harmonixTune — Stratégie de développement : détection d'accords (US3)
 
-**Statut :** Cadrage validé. Étapes 1 à 4 implémentées et testées
+**Statut :** Cadrage validé. Étapes 1 à 5 implémentées et testées
 (`chord_quality.dart`, `chord_template_library.dart`, extension publique de
 `NoteFrequencyConverter.chromaticScale`, `spectral_peak_extractor.dart`,
 `chromagram_builder.dart`, `chord_isolate_worker.dart` + constantes `chord*`
-dans `AudioConstants`, `chord_repository.dart` + `chord_repository_impl.dart`
-— 276 tests projet, 0 échec, `flutter analyze` propre). Dépendance `fftea:
-^1.5.0+1` ajoutée à `pubspec.yaml`.
+dans `AudioConstants`, `chord_repository.dart` + `chord_repository_impl.dart`,
+`chord_detector_bloc.dart` + `chord_smoother.dart` — 292 tests projet, 0
+échec, `flutter analyze` propre). Dépendance `fftea: ^1.5.0+1` ajoutée à
+`pubspec.yaml`.
 **Référence :** `DEV_STRATEGY.md` (Phase 6 initiale — UI mock uniquement),
 `ARCHITECTURE_FLUX.md`, pipeline Tuner réel (`lib/data/workers/audio_isolate_worker.dart`,
 `lib/data/repositories/audio_repository_impl.dart`, `lib/presentation/screens/tuner/`).
@@ -282,6 +283,6 @@ test/
 | 2 — `spectral_peak_extractor.dart` + `chromagram_builder.dart` | ✅ Fait | Dépendance `fftea` ajoutée. `SpectralPeakExtractor` : fenêtrage `Window.hanning`, FFT via `FFT(fftSize).realFft().discardConjugates().magnitudes()`, filtrage bande [minFreqHz, maxFreqHz] + bin DC exclu **avant** peak-picking, interpolation parabolique (même formule/garde que `YinDetector._findTauStar`). Aucun couplage à `AudioConstants` (constructeur à paramètres explicites, comme `YinDetector`/`IirBandpassFilter`) — le câblage aux constantes app se fera à l'étape 3 (Isolate). `ChromagramBuilder` : repliement MIDI `C=0`, compression `log(1+γ·magnitude)` (γ=10). Tests : silence, repliement multi-octave, bande passante (50 Hz et 4000 Hz exclus), interpolation (440 Hz retrouvé à ±3 Hz sur une résolution de bin brute de ~10,77 Hz), compression log vérifiée par un ratio concret (note faible à 0,01 en linéaire remonte à >0,3 après compression). |
 | 3 — `chord_isolate_worker.dart` | ✅ Fait | Constantes `chord*` ajoutées à `AudioConstants` (§3.3, valeurs validées). `ChordWindowAccumulator` : classe dédiée au recouvrement 50 % (concatène les 2 derniers hops), `@visibleForTesting`, testée indépendamment (chauffe, fenêtre, glissement). Pipeline `_processHop` : cast Int16→Float64, RMS **toujours** calculée et l'accumulateur **toujours** alimenté (même en silence, pour ne pas désynchroniser le recouvrement), court-circuit silence avant la vérification de chauffe, puis FFT → chromagramme → matching. Pas de seuillage `chordMinConfidence` dans l'Isolate : le nom/la confiance bruts sont toujours émis, la décision « Indéterminé » revient au `ChordSmoother` (étape 5), conformément à §5.2. Test d'intégration bout-en-bout (spawn réel de l'Isolate) : accord Do majeur reconnu sur 2 hops consécutifs à phase continue. |
 | 4 — `chord_repository_impl.dart` | ✅ Fait | `ChordRepository` (interface) : `streamChord({referenceA4Hz})` + `stop()` — pas d'`updateConfig` (aucun besoin de reconfiguration à chaud identifié pour l'instant, contrairement au Tuner). `ChordRepositoryImpl` est un miroir quasi exact d'`AudioRepositoryImpl` (même gestion `StreamController` lazy `onListen`/`onCancel`, mêmes garde-fous de cycle de vie Isolate/DataSource) — confirme concrètement la décision d'isolation §3.1 : sa propre `MicrophoneDataSource`, son propre Isolate, aucun couplage au Tuner. Tests mockant `MicrophoneDataSource` (comme `audio_repository_impl_test.dart`) : accord Do majeur détecté sur 2 chunks PCM, `ChordResult.silent` émis pour un chunk silencieux, permission refusée propagée, cycle de vie `stop()`. |
-| 5 — `chord_detector_bloc.dart` + `chord_smoother.dart` | À faire | — |
+| 5 — `chord_detector_bloc.dart` + `chord_smoother.dart` | ✅ Fait | `ChordSmoother` : silence = état immédiat sans hold (fait technique, pas une ambiguïté musicale) et réinitialise le dernier accord confirmé ; sinon majorité ≥2/3 sur la fenêtre glissante avec confiance suffisante, sinon hold de l'accord précédemment confirmé pendant `chordHoldFramesOnIndetermination` fenêtres avant bascule sur indéterminé. `ChordDetectorBloc` : miroir de `TunerBloc` — `WidgetsBindingObserver` (BUG-02) et sérialisation Start/Stop via `_guarded` (BUG-03) branchés dès ce commit, pas ajoutés après coup comme ça l'a été pour le Tuner. Tests : séquence complète du smoother (indétermination → majorité → hold → bascule), confiance sous seuil, réinitialisation par le silence ; BLoC testé avec `bloc_test`/`mocktail` sur le même plan que `tuner_bloc_test.dart` (cycle de vie, sérialisation, permission, confirmation d'accord sur 2 réceptions). |
 | 6 — `chords_screen.dart` + widgets | À faire | — |
 | 7 (différée) — doigté guitare, `Semantics` vocaux | Différée | — |
