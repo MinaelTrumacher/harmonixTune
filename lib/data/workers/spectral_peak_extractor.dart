@@ -17,15 +17,19 @@ class SpectralPeak {
 ///
 /// Fenêtrage de Hann + FFT via `fftea`, filtrage de la bande passante
 /// [minFreqHz, maxFreqHz] (exclut le bin DC et le bruit hors registre
-/// musical), détection de maxima locaux, et affinage de chaque pic par
+/// musical), détection de maxima locaux, affinage de chaque pic par
 /// interpolation parabolique — compense la résolution grossière des bins FFT
-/// dans le registre grave.
+/// dans le registre grave — et limitation aux [maxPeaks] pics les plus
+/// puissants si fourni (au-delà, l'essentiel est du résidu harmonique
+/// plutôt que de nouvelles fondamentales, cf. diagnostic US3 sur guitare
+/// réelle : contamination des degrés 3 et b7 par les harmoniques 5 et 7).
 class SpectralPeakExtractor {
   SpectralPeakExtractor({
     required this.sampleRate,
     required this.fftSize,
     this.minFreqHz = 70.0,
     this.maxFreqHz = 3000.0,
+    this.maxPeaks,
   }) : _fft = FFT(fftSize),
        _window = Window.hanning(fftSize);
 
@@ -33,6 +37,10 @@ class SpectralPeakExtractor {
   final int fftSize;
   final double minFreqHz;
   final double maxFreqHz;
+
+  /// Nombre maximal de pics retenus (les plus puissants), ou `null` pour ne
+  /// pas limiter.
+  final int? maxPeaks;
 
   final FFT _fft;
   final Float64List _window;
@@ -73,6 +81,12 @@ class SpectralPeakExtractor {
           magnitude: d1,
         ),
       );
+    }
+
+    final limit = maxPeaks;
+    if (limit != null && peaks.length > limit) {
+      peaks.sort((a, b) => b.magnitude.compareTo(a.magnitude));
+      return peaks.sublist(0, limit);
     }
     return peaks;
   }

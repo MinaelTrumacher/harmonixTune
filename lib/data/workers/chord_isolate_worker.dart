@@ -47,6 +47,7 @@ void chordIsolateEntryPoint(SendPort mainSendPort) {
     fftSize: AudioConstants.chordFftSize,
     minFreqHz: AudioConstants.chordMinFreqHz,
     maxFreqHz: AudioConstants.chordMaxFreqHz,
+    maxPeaks: AudioConstants.chordMaxPeaks,
   );
   final accumulator = ChordWindowAccumulator(
     hopSize: AudioConstants.chordHopSize,
@@ -162,8 +163,15 @@ void _processHop(
   if (window == null) return; // buffer pas encore chaud (1er hop)
 
   final peaks = peakExtractor.extract(window);
-  final chroma = ChromagramBuilder.build(peaks, referenceA4Hz: referenceA4Hz);
-  final match = ChordTemplateLibrary.match(chroma);
+  final chroma = ChromagramBuilder.build(
+    peaks,
+    referenceA4Hz: referenceA4Hz,
+    compressionGamma: AudioConstants.chordCompressionGamma,
+  );
+  final match = ChordTemplateLibrary.match(
+    chroma,
+    complexityMargin: AudioConstants.chordComplexityMargin,
+  );
 
   replyPort.send(
     ChordDetectedMessage(

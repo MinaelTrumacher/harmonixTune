@@ -10,7 +10,11 @@ void main() {
 
   group('ChromagramBuilder — cas de base', () {
     test('aucun pic → vecteur nul (silence)', () {
-      final chroma = ChromagramBuilder.build([], referenceA4Hz: referenceA4Hz);
+      final chroma = ChromagramBuilder.build(
+        [],
+        referenceA4Hz: referenceA4Hz,
+        compressionGamma: 10.0,
+      );
       expect(chroma, hasLength(12));
       expect(chroma.every((v) => v == 0.0), isTrue);
     });
@@ -19,6 +23,7 @@ void main() {
       final chroma = ChromagramBuilder.build(
         [SpectralPeak(frequencyHz: hz('A4'), magnitude: 1.0)],
         referenceA4Hz: referenceA4Hz,
+        compressionGamma: 10.0,
       );
       expect(chroma[9], closeTo(1.0, 1e-9)); // A = index 9
       expect(chroma.where((v) => v > 0), hasLength(1));
@@ -31,7 +36,7 @@ void main() {
         SpectralPeak(frequencyHz: hz('C4'), magnitude: 1.0),
         SpectralPeak(frequencyHz: hz('E4'), magnitude: 1.0),
         SpectralPeak(frequencyHz: hz('G4'), magnitude: 1.0),
-      ], referenceA4Hz: referenceA4Hz);
+      ], referenceA4Hz: referenceA4Hz, compressionGamma: 10.0);
 
       expect(chroma[0], greaterThan(0)); // C
       expect(chroma[4], greaterThan(0)); // E
@@ -46,7 +51,7 @@ void main() {
         SpectralPeak(frequencyHz: hz('C2'), magnitude: 1.0),
         SpectralPeak(frequencyHz: hz('C4'), magnitude: 1.0),
         SpectralPeak(frequencyHz: hz('C6'), magnitude: 1.0),
-      ], referenceA4Hz: referenceA4Hz);
+      ], referenceA4Hz: referenceA4Hz, compressionGamma: 10.0);
 
       expect(chroma.where((v) => v > 0), hasLength(1));
       expect(chroma[0], closeTo(1.0, 1e-9));
@@ -60,7 +65,7 @@ void main() {
         final chroma = ChromagramBuilder.build([
           SpectralPeak(frequencyHz: hz('C4'), magnitude: 100.0), // attaque forte
           SpectralPeak(frequencyHz: hz('G4'), magnitude: 1.0), // sustain faible
-        ], referenceA4Hz: referenceA4Hz);
+        ], referenceA4Hz: referenceA4Hz, compressionGamma: 10.0);
 
         // Sans compression (mise à l'échelle linéaire), le ratio quiet/loud
         // serait 1/100 = 0.01. La compression log(1+γx) le remonte largement.

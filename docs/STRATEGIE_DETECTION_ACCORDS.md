@@ -3,8 +3,12 @@
 **Statut :** Cadrage validé. Étapes 1 à 6 implémentées et testées — la
 détection d'accords est utilisable de bout en bout dans l'app (micro réel →
 FFT → chromagramme → matching → lissage → UI), diagramme de doigté et
-`Semantics` vocaux restant seuls différés à l'étape 7. 303 tests projet, 0
-échec, `flutter analyze` propre. Dépendance `fftea: ^1.5.0+1` ajoutée à
+`Semantics` vocaux restant seuls différés à l'étape 7. **Correctif post-
+recette appliqué (§11)** suite à un test sur guitare réelle : contamination
+harmonique corrigée (accords majeurs classés "7"/"maj7", mineurs mal
+reconnus) et lissage refondu en segmentation par événement (onset) pour
+régler le flottement/la disparition observés en jeu réel. 317 tests projet,
+0 échec, `flutter analyze` propre. Dépendance `fftea: ^1.5.0+1` ajoutée à
 `pubspec.yaml`.
 **Référence :** `DEV_STRATEGY.md` (Phase 6 initiale — UI mock uniquement),
 `ARCHITECTURE_FLUX.md`, pipeline Tuner réel (`lib/data/workers/audio_isolate_worker.dart`,
@@ -281,6 +285,107 @@ test/
 | 2 — `spectral_peak_extractor.dart` + `chromagram_builder.dart` | ✅ Fait | Dépendance `fftea` ajoutée. `SpectralPeakExtractor` : fenêtrage `Window.hanning`, FFT via `FFT(fftSize).realFft().discardConjugates().magnitudes()`, filtrage bande [minFreqHz, maxFreqHz] + bin DC exclu **avant** peak-picking, interpolation parabolique (même formule/garde que `YinDetector._findTauStar`). Aucun couplage à `AudioConstants` (constructeur à paramètres explicites, comme `YinDetector`/`IirBandpassFilter`) — le câblage aux constantes app se fera à l'étape 3 (Isolate). `ChromagramBuilder` : repliement MIDI `C=0`, compression `log(1+γ·magnitude)` (γ=10). Tests : silence, repliement multi-octave, bande passante (50 Hz et 4000 Hz exclus), interpolation (440 Hz retrouvé à ±3 Hz sur une résolution de bin brute de ~10,77 Hz), compression log vérifiée par un ratio concret (note faible à 0,01 en linéaire remonte à >0,3 après compression). |
 | 3 — `chord_isolate_worker.dart` | ✅ Fait | Constantes `chord*` ajoutées à `AudioConstants` (§3.3, valeurs validées). `ChordWindowAccumulator` : classe dédiée au recouvrement 50 % (concatène les 2 derniers hops), `@visibleForTesting`, testée indépendamment (chauffe, fenêtre, glissement). Pipeline `_processHop` : cast Int16→Float64, RMS **toujours** calculée et l'accumulateur **toujours** alimenté (même en silence, pour ne pas désynchroniser le recouvrement), court-circuit silence avant la vérification de chauffe, puis FFT → chromagramme → matching. Pas de seuillage `chordMinConfidence` dans l'Isolate : le nom/la confiance bruts sont toujours émis, la décision « Indéterminé » revient au `ChordSmoother` (étape 5), conformément à §5.2. Test d'intégration bout-en-bout (spawn réel de l'Isolate) : accord Do majeur reconnu sur 2 hops consécutifs à phase continue. |
 | 4 — `chord_repository_impl.dart` | ✅ Fait | `ChordRepository` (interface) : `streamChord({referenceA4Hz})` + `stop()` — pas d'`updateConfig` (aucun besoin de reconfiguration à chaud identifié pour l'instant, contrairement au Tuner). `ChordRepositoryImpl` est un miroir quasi exact d'`AudioRepositoryImpl` (même gestion `StreamController` lazy `onListen`/`onCancel`, mêmes garde-fous de cycle de vie Isolate/DataSource) — confirme concrètement la décision d'isolation §3.1 : sa propre `MicrophoneDataSource`, son propre Isolate, aucun couplage au Tuner. Tests mockant `MicrophoneDataSource` (comme `audio_repository_impl_test.dart`) : accord Do majeur détecté sur 2 chunks PCM, `ChordResult.silent` émis pour un chunk silencieux, permission refusée propagée, cycle de vie `stop()`. |
-| 5 — `chord_detector_bloc.dart` + `chord_smoother.dart` | ✅ Fait | `ChordSmoother` : silence = état immédiat sans hold (fait technique, pas une ambiguïté musicale) et réinitialise le dernier accord confirmé ; sinon majorité ≥2/3 sur la fenêtre glissante avec confiance suffisante, sinon hold de l'accord précédemment confirmé pendant `chordHoldFramesOnIndetermination` fenêtres avant bascule sur indéterminé. `ChordDetectorBloc` : miroir de `TunerBloc` — `WidgetsBindingObserver` (BUG-02) et sérialisation Start/Stop via `_guarded` (BUG-03) branchés dès ce commit, pas ajoutés après coup comme ça l'a été pour le Tuner. Tests : séquence complète du smoother (indétermination → majorité → hold → bascule), confiance sous seuil, réinitialisation par le silence ; BLoC testé avec `bloc_test`/`mocktail` sur le même plan que `tuner_bloc_test.dart` (cycle de vie, sérialisation, permission, confirmation d'accord sur 2 réceptions). |
+| 5 — `chord_detector_bloc.dart` + `chord_smoother.dart` | ✅ Fait (⚠️ `ChordSmoother` refondu depuis, cf. §11) | `ChordDetectorBloc` : miroir de `TunerBloc` — `WidgetsBindingObserver` (BUG-02) et sérialisation Start/Stop via `_guarded` (BUG-03) branchés dès ce commit, pas ajoutés après coup comme ça l'a été pour le Tuner. La logique de lissage d'origine (fenêtre glissante continue, silence = reset immédiat) a été remplacée par une segmentation par événement — voir §11 pour le détail actuel et la raison du changement. |
 | 6 — `chords_screen.dart` + widgets | ✅ Fait | `ChordsScreen` : miroir exact de `TunerScreen` (injection par constructeur, `isActive` branché dans `MainShell`, vue de refus de permission). `ChordNameDisplay` : nom d'accord + confiance pour `detected`, "Indéterminé" pour `indeterminate`, "Jouez un accord" pour `silent` — 3 états visuellement distincts, pas de confusion entre absence de signal et ambiguïté musicale. `ChromaBarWidget` : 12 barres (`CustomPainter`, sans Ticker — la cadence vient déjà du `ChordSmoother`), degrés actifs mis en évidence, labels via `NoteFrequencyConverter.chromaticScale`. Tests : montage initial + transitions `isActive` (miroir `tuner_screen_test.dart`), 3 états de `ChordNameDisplay`, `ChromaBarWidget` sans exception sur accord détecté et sur une séquence de changements d'état. |
 | 7 (différée) — doigté guitare, `Semantics` vocaux | Différée | — |
+
+---
+
+## 11. Correctif post-recette : contamination harmonique + segmentation par événement
+
+Suite à un premier test sur guitare réelle (build `dev` sideloadée) : deux
+problèmes distincts constatés, diagnostiqués et corrigés dans la même passe.
+
+### 11.1 Diagnostic
+
+**Contamination harmonique.** Toute note réelle produit un fondamental +
+une série d'harmoniques (2×f0, 3×f0, ...). Le 5e harmonique tombe sur la
+tierce majeure (2 octaves plus haut), le 7e harmonique tombe près de la 7e
+mineure. `ChromagramBuilder` compressait avec `γ=10`
+(`log(1+γ·magnitude)`), jamais calibré sur du son réel — cette compression
+amplifiait ces harmoniques faibles au point de rivaliser avec les vraies
+fondamentales : accords majeurs classés "7"/"maj7", accords mineurs mal
+reconnus (tierce majeure fantôme masquant la vraie tierce mineure). Calcul
+vérifié en test : à contamination 0,5 (post-compression), le score cosinus
+de "C7" dépasse "C" au score brut — la triade à 4 notes (sur-ensemble
+d'intervalles de la triade à 3 notes) "accroche" structurellement plus
+facilement le bruit.
+
+Les tests unitaires existants ne l'avaient jamais révélé : ils construisent
+leurs signaux avec des **sinusoïdes pures sommées**, zéro harmonique — un
+accord de synthèse est acoustiquement irréaliste face à un vrai timbre de
+guitare.
+
+**Flottement puis disparition.** `ChordSmoother` lissait en continu (fenêtre
+glissante de 3, silence = reset immédiat). Un strum de guitare est un
+événement discret (attaque → sustain → decay → silence), pas un flux
+continu : l'attaque (bruit large bande peu fiable) faisait flotter le nom
+entre plusieurs templates avant stabilisation, et l'affichage s'effaçait dès
+que le volume passait sous le seuil RMS — souvent alors que la note résonne
+encore.
+
+### 11.2 Corrections apportées
+
+**Acoustique** (`AudioConstants`, `SpectralPeakExtractor`,
+`ChromagramBuilder`, `ChordTemplateLibrary`) :
+
+- `chordMaxPeaks = 9` : `SpectralPeakExtractor` ne garde que les N pics les
+  plus puissants avant projection dans le chromagramme — une guitare à 6
+  cordes ne produit que 6 fondamentales simultanées, le reste est
+  presque toujours du résidu harmonique.
+- `chordCompressionGamma` abaissé de `10.0` à `1.0` — moins d'amplification
+  des harmoniques faibles. Devenu un paramètre explicite de
+  `ChromagramBuilder.build()` (plus une constante interne), cohérent avec
+  la convention déjà en place pour `referenceA4Hz`.
+- `chordComplexityMargin = 0.08` : rasoir d'Occam musical dans
+  `ChordTemplateLibrary.match()` — un template à 4 notes (sur-ensemble
+  d'intervalles d'une triade) ne détrône son "parent" à 3 notes que si
+  l'écart de score dépasse cette marge. Un vrai accord de 7e (b7/M7 à pleine
+  intensité) n'est jamais supprimé — vérifié en test.
+
+**Segmentation temporelle** (`ChordSmoother`, entièrement réécrit) :
+
+Passage d'un lissage continu à une segmentation par événement (onset),
+arbitrages validés par l'utilisateur :
+
+- `chordAttackFramesToSkip = 2` (~93 ms) : les 2 premières frames d'un
+  onset ne votent pas — le transitoire d'attaque du médiator retombe
+  généralement sous ce délai.
+- `chordEventCloseSilentFrames = 3` (~140 ms) : il faut 3 frames
+  silencieuses consécutives pour clore un événement, pas une seule — évite
+  de couper une note sur un simple creux (battement harmonique de la
+  corde).
+- Persistance : l'accord résolu (nom + confiance **moyenne** des votes de
+  l'événement) reste affiché après la clôture, jusqu'au prochain onset.
+- `chordSilenceTimeoutFrames` (~5 s, `(5 * sampleRate) ~/ chordHopSize`,
+  soit 107 frames) : filet de sécurité qui réinitialise doucement
+  l'affichage sur l'état silencieux après un silence prolongé — pas une
+  limite normale de fonctionnement.
+
+Le nouvel algorithme, en bref : à chaque nouvel onset, accumulation d'un
+vote (nom → nombre d'occurrences + somme des confiances) à partir de la 3e
+frame ; l'affichage se met à jour en direct sur le nom majoritaire cumulé.
+Un creux de silence sous le seuil de clôture ne réinitialise pas le vote en
+cours. Une fois l'événement clos, le résultat reste figé jusqu'au onset
+suivant ou au timeout.
+
+### 11.3 Tests
+
+- `chord_template_library_test.dart` : accord majeur pollué à 20 % sur la
+  7e mineure → reste "C" ; accord mineur pollué à 20 % sur la tierce
+  majeure → reste "Cm" ; 4 tests dédiés au rasoir d'Occam (bascule dans la
+  marge, non-suppression d'un vrai 7/maj7, marge à 0 = désactivée).
+- `spectral_peak_extractor_test.dart` : `maxPeaks` conserve les pics les
+  plus forts et écarte les plus faibles.
+- `chord_smoother_test.dart` : entièrement réécrit pour la segmentation par
+  événement (attaque ignorée, vote majoritaire cumulé, creux ne fermant pas
+  l'événement, persistance pendant et après la clôture, nouvel onset qui
+  garde l'ancien accord affiché pendant sa propre attaque, timeout).
+- `chord_detector_bloc_test.dart` : test de confirmation mis à jour (3
+  réceptions nécessaires désormais, pas 2).
+
+**Non fait — nécessite l'utilisateur** : banc d'échantillons audio réels
+(2-3 fichiers PCM de vrais strums guitare en asset de test) pour valider
+l'algorithme sur du signal organique, au-delà des sinusoïdes de synthèse et
+des vecteurs pollués artificiellement. Ces derniers couvrent le mécanisme de
+correction mais restent des approximations construites à la main.

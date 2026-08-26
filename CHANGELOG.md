@@ -44,10 +44,9 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     (`data/repositories`) : expose `streamChord()` côté Domain, miroir
     d'`AudioRepositoryImpl` avec sa propre `MicrophoneDataSource` et son
     propre Isolate (aucune mutualisation avec le Tuner).
-  - `ChordSmoother` (`presentation/screens/chords/bloc`) : filtre
-    anti-scintillement — silence immédiat (sans hold), majorité ≥2/3 sur
-    la fenêtre glissante pour confirmer un accord, hold de l'accord
-    précédent en cas d'indécision avant bascule sur l'état indéterminé.
+  - `ChordSmoother` (`presentation/screens/chords/bloc`) : segmentation par
+    événement (onset) — voir le correctif ci-dessous, qui a remplacé le
+    design initial en fenêtre glissante continue avant toute publication.
   - `ChordDetectorBloc` : miroir de `TunerBloc`, avec la gestion du cycle
     de vie applicatif et la sérialisation Start/Stop (équivalents BUG-02 /
     BUG-03) branchées dès ce commit plutôt qu'ajoutées après coup.
@@ -56,6 +55,31 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     `ChordNameDisplay` distingue visuellement 3 états (accord confirmé,
     indéterminé, silence) ; `ChromaBarWidget` visualise les 12 degrés du
     chromagramme avec mise en évidence des notes actives.
+
+### Corrigé
+- **US3 — Contamination harmonique et flottement/disparition de l'accord
+  affiché**, constatés lors d'un premier test sur guitare réelle (cf. §11
+  de `docs/STRATEGIE_DETECTION_ACCORDS.md`) :
+  - Les accords majeurs classiques ressortaient en "7"/"maj7", les accords
+    mineurs étaient mal reconnus — causé par la série d'harmoniques d'une
+    note réelle (5e harmonique ≈ tierce majeure, 7e harmonique ≈ 7e
+    mineure) amplifiée par une compression `γ=10` jamais calibrée sur du
+    son réel. Corrigé par 3 leviers combinés : `SpectralPeakExtractor` ne
+    garde plus que les `chordMaxPeaks` (9) pics les plus puissants,
+    `chordCompressionGamma` abaissé à `1.0`, et un rasoir d'Occam musical
+    dans `ChordTemplateLibrary.match()` (`chordComplexityMargin = 0.08`) :
+    un template à 4 notes ne détrône sa triade parente que par un écart de
+    score net.
+  - Le nom affiché flottait pendant l'attaque d'un strum (transitoire bruyant
+    peu fiable) puis disparaissait dès que le volume décroissait sous le
+    seuil de silence, alors que la note résonnait encore — causé par un
+    lissage en fenêtre glissante continue, inadapté à un accord de guitare
+    qui est un événement discret (attaque → sustain → decay → silence), pas
+    un flux continu. `ChordSmoother` entièrement réécrit en segmentation
+    par événement (onset) : 2 frames d'attaque ignorées, vote majoritaire
+    cumulé sur l'événement, 3 frames silencieuses consécutives pour clore
+    (un simple creux ne suffit pas), et l'accord résolu reste affiché
+    jusqu'au prochain onset (timeout de sécurité à ~5 s de silence total).
 
 ### Modifié
 - CI : l'upload de couverture vers Codecov est désormais ignoré pour les

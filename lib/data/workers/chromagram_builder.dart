@@ -13,16 +13,17 @@ import 'spectral_peak_extractor.dart';
 /// ou la quinte dans le vecteur résultant (l'énergie brute |X(f)|² amplifie
 /// trop fortement l'attaque par rapport au sustain des autres notes).
 abstract final class ChromagramBuilder {
-  // Facteur de la compression log(1 + γ·magnitude) — cf. cadrage US3.
-  static const double compressionGamma = 10.0;
-
   /// [referenceA4Hz] : fréquence de A4 utilisée pour l'attribution du degré
-  /// chromatique (tempérament égal), passée explicitement par l'appelant
-  /// (pas de valeur par défaut couplée à `AudioConstants` ici — cohérent
-  /// avec `YinDetector`/`IirBandpassFilter`).
+  /// chromatique (tempérament égal). [compressionGamma] : facteur de la
+  /// compression log(1 + γ·magnitude) — cf. cadrage US3. Les deux sont
+  /// passés explicitement par l'appelant (pas de valeur par défaut couplée
+  /// à `AudioConstants` ici — cohérent avec `YinDetector`/`IirBandpassFilter`),
+  /// pour rester testable avec des valeurs arbitraires indépendamment du
+  /// réglage courant de l'application.
   static List<double> build(
     List<SpectralPeak> peaks, {
     required double referenceA4Hz,
+    required double compressionGamma,
   }) {
     final chroma = List<double>.filled(12, 0.0);
     for (final peak in peaks) {

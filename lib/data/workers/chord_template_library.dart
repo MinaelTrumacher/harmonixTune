@@ -46,19 +46,61 @@ abstract final class ChordTemplateLibrary {
   /// Ne fait aucune hypothèse de seuil de confiance — c'est à l'appelant
   /// (Isolate/BLoC) de décider, via `AudioConstants.chordMinConfidence`,
   /// si le score est suffisant pour afficher l'accord.
-  static ({String chordName, double confidence}) match(List<double> chroma) {
+  ///
+  /// [complexityMargin] : rasoir d'Occam musical. Un template à 4 notes
+  /// (7, maj7) est un sur-ensemble d'intervalles de la triade majeure de
+  /// même racine — il "accroche" donc plus facilement le résidu harmonique
+  /// (5e/7e harmonique d'une fondamentale) que la triade seule. Si le
+  /// meilleur score brut est un template à 4 notes mais que son "parent" à
+  /// 3 notes reste à moins de [complexityMargin] derrière, la triade plus
+  /// simple l'emporte quand même.
+  static ({String chordName, double confidence}) match(
+    List<double> chroma, {
+    required double complexityMargin,
+  }) {
     assert(chroma.length == 12, 'chroma doit être un vecteur 12D');
 
-    String bestName = templates.first.name;
+    ChordTemplate bestTemplate = templates.first;
     double bestScore = -1.0;
     for (final template in templates) {
       final score = _cosineSimilarity(chroma, template.vector);
       if (score > bestScore) {
         bestScore = score;
-        bestName = template.name;
+        bestTemplate = template;
       }
     }
-    return (chordName: bestName, confidence: bestScore);
+
+    // Un seul "parent" plus simple possible par template dans le jeu de 4
+    // qualités actuel (major/minor n'ont pas de parent ; 7 et maj7 ont
+    // chacun major pour unique parent) — pas de recherche du parent le plus
+    // proche en cas de chaîne à plusieurs niveaux, qui n'existe pas ici.
+    for (final candidate in templates) {
+      if (identical(candidate, bestTemplate)) continue;
+      if (!_isStrictSubset(candidate.vector, bestTemplate.vector)) continue;
+      final candidateScore = _cosineSimilarity(chroma, candidate.vector);
+      if (bestScore - candidateScore < complexityMargin) {
+        bestTemplate = candidate;
+        bestScore = candidateScore;
+      }
+      break;
+    }
+
+    return (chordName: bestTemplate.name, confidence: bestScore);
+  }
+
+  /// `true` si les degrés actifs de [a] forment un sous-ensemble strict de
+  /// ceux de [b] (ex. triade majeure {0,4,7} ⊂ dominante 7 {0,4,7,10}).
+  static bool _isStrictSubset(List<double> a, List<double> b) {
+    int activeInA = 0;
+    int activeInB = 0;
+    for (int i = 0; i < 12; i++) {
+      if (a[i] > 0) {
+        activeInA++;
+        if (b[i] <= 0) return false;
+      }
+      if (b[i] > 0) activeInB++;
+    }
+    return activeInA < activeInB;
   }
 
   static double _cosineSimilarity(List<double> a, List<double> b) {

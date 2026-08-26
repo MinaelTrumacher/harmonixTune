@@ -200,14 +200,20 @@ void main() {
     );
 
     blocTest<ChordDetectorBloc, ChordDisplayState>(
-      'confirme l\'accord (kind=detected) après 2 réceptions identiques '
-      '(lissage ChordSmoother, seuil par défaut 2/3)',
+      'confirme l\'accord (kind=detected) à la 3e réception identique '
+      '(ChordSmoother : 2 frames d\'attaque ignorées avant le 1er vote)',
       build: makeBloc,
       act: (b) {
-        b.add(ChordReceived(makeChord(chordName: 'G')));
-        b.add(ChordReceived(makeChord(chordName: 'G')));
+        b.add(ChordReceived(makeChord(chordName: 'G'))); // attaque, ignorée
+        b.add(ChordReceived(makeChord(chordName: 'G'))); // attaque, ignorée
+        b.add(ChordReceived(makeChord(chordName: 'G'))); // 1er vote
       },
       expect: () => [
+        isA<ChordListening>().having(
+          (s) => s.smoothed.kind,
+          'kind',
+          SmoothedChordKind.indeterminate,
+        ),
         isA<ChordListening>().having(
           (s) => s.smoothed.kind,
           'kind',
