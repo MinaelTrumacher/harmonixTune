@@ -61,12 +61,13 @@ abstract final class AudioConstants {
   // (tierce majeure fantôme). Abaissé après diagnostic sur guitare réelle.
   static const double chordCompressionGamma = 1.0;
 
-  // Marge minimale (en score cosinus) qu'un template à 4 notes (7, maj7)
-  // doit dépasser son "parent" à 3 notes (la triade majeure dont il est le
-  // sur-ensemble d'intervalles) pour le détrôner dans ChordTemplateLibrary.
-  // Rasoir d'Occam musical : à score presque égal, un template plus riche
-  // accroche plus facilement le résidu harmonique — la triade la plus
-  // simple doit l'emporter sauf écart net.
+  // Rasoir d'Occam musical, évalué par ChordSmoother sur la fenêtre
+  // glissante (chordVoteWindowSize), PAS frame par frame dans
+  // ChordTemplateLibrary (testé insuffisant : basculait sur un pic isolé
+  // plutôt qu'une tendance soutenue). Écart moyen minimal (unités de score
+  // cosinus, [0,1]) qu'une variante à 7e (7, maj7) doit maintenir au-dessus
+  // de la triade de base de sa famille, sur toute la fenêtre, pour la
+  // détrôner — cf. §13 de docs/STRATEGIE_DETECTION_ACCORDS.md.
   static const double chordComplexityMargin = 0.08;
 
   // Segmentation par événement (onset) du ChordSmoother — un strum de
@@ -83,4 +84,11 @@ abstract final class AudioConstants {
   // vers l'état silencieux (filet de sécurité, pas une limite normale —
   // l'accord résolu reste sinon affiché jusqu'au prochain onset).
   static const int chordSilenceTimeoutFrames = (5 * sampleRate) ~/ chordHopSize;
+
+  // Taille de la fenêtre glissante (en frames post-attaque, non
+  // silencieuses) sur laquelle ChordSmoother pondère les votes par famille
+  // et par nom exact — un compromis latence/fiabilité à calibrer
+  // empiriquement (plage envisagée : 5-8 frames, soit ~230-370 ms à ~46 ms
+  // par frame).
+  static const int chordVoteWindowSize = 6;
 }

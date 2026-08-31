@@ -6,9 +6,18 @@ import '../../domain/enums/chord_quality.dart';
 /// Un accord de référence : nom affiché + vecteur chroma binaire (12D, 1.0
 /// sur les degrés de l'accord, 0.0 ailleurs).
 class ChordTemplate {
-  const ChordTemplate({required this.name, required this.vector});
+  const ChordTemplate({
+    required this.name,
+    required this.familyName,
+    required this.vector,
+  });
 
   final String name;
+  // Triade de base (racine + majeur/mineur, sans 7e) — ex. "F", "F7" et
+  // "Fmaj7" partagent tous familyName "F" ; "Fm" est sa propre famille (pas
+  // de variante à 7e mineure dans le jeu de qualités actuel). Sert au vote
+  // pondéré par famille du ChordSmoother, pas au matching lui-même.
+  final String familyName;
   final List<double> vector;
 }
 
@@ -17,12 +26,20 @@ class ChordTemplate {
 ///
 /// Générés par rotation plutôt que codés en dur : garantit la cohérence des
 /// 48 vecteurs et évite les erreurs de recopie.
+///
+/// Le matching lui-même reste un plus-proche-voisin cosinus simple, sans
+/// arbitrage triade/7e — cet arbitrage (rasoir d'Occam) s'est avéré trop
+/// fragile évalué frame par frame (bascule sur un pic isolé plutôt qu'une
+/// tendance) et a été déplacé dans `ChordSmoother`, qui l'évalue sur une
+/// fenêtre glissante de plusieurs frames — cf. §13 de
+/// `docs/STRATEGIE_DETECTION_ACCORDS.md`.
 abstract final class ChordTemplateLibrary {
   static final List<ChordTemplate> templates = _generateTemplates();
 
   static List<ChordTemplate> _generateTemplates() {
     final generated = <ChordTemplate>[];
     for (int root = 0; root < 12; root++) {
+      final rootName = NoteFrequencyConverter.chromaticScale[root];
       for (final quality in ChordQuality.values) {
         final vector = List<double>.filled(12, 0.0);
         for (final interval in quality.intervals) {
@@ -30,8 +47,10 @@ abstract final class ChordTemplateLibrary {
         }
         generated.add(
           ChordTemplate(
-            name: '${NoteFrequencyConverter.chromaticScale[root]}'
-                '${quality.suffix}',
+            name: '$rootName${quality.suffix}',
+            familyName: quality == ChordQuality.minor
+                ? '$rootName${quality.suffix}'
+                : rootName,
             vector: vector,
           ),
         );
@@ -41,23 +60,15 @@ abstract final class ChordTemplateLibrary {
   }
 
   /// Retourne le template le mieux corrélé à [chroma] (vecteur 12D, énergie
-  /// non-négative) et le score de similitude cosinus associé ([0.0, 1.0]).
+  /// non-négative), son `familyName`, et le score de similitude cosinus
+  /// associé ([0.0, 1.0]).
   ///
   /// Ne fait aucune hypothèse de seuil de confiance — c'est à l'appelant
   /// (Isolate/BLoC) de décider, via `AudioConstants.chordMinConfidence`,
   /// si le score est suffisant pour afficher l'accord.
-  ///
-  /// [complexityMargin] : rasoir d'Occam musical. Un template à 4 notes
-  /// (7, maj7) est un sur-ensemble d'intervalles de la triade majeure de
-  /// même racine — il "accroche" donc plus facilement le résidu harmonique
-  /// (5e/7e harmonique d'une fondamentale) que la triade seule. Si le
-  /// meilleur score brut est un template à 4 notes mais que son "parent" à
-  /// 3 notes reste à moins de [complexityMargin] derrière, la triade plus
-  /// simple l'emporte quand même.
-  static ({String chordName, double confidence}) match(
-    List<double> chroma, {
-    required double complexityMargin,
-  }) {
+  static ({String chordName, String familyName, double confidence}) match(
+    List<double> chroma,
+  ) {
     assert(chroma.length == 12, 'chroma doit être un vecteur 12D');
 
     ChordTemplate bestTemplate = templates.first;
@@ -70,37 +81,11 @@ abstract final class ChordTemplateLibrary {
       }
     }
 
-    // Un seul "parent" plus simple possible par template dans le jeu de 4
-    // qualités actuel (major/minor n'ont pas de parent ; 7 et maj7 ont
-    // chacun major pour unique parent) — pas de recherche du parent le plus
-    // proche en cas de chaîne à plusieurs niveaux, qui n'existe pas ici.
-    for (final candidate in templates) {
-      if (identical(candidate, bestTemplate)) continue;
-      if (!_isStrictSubset(candidate.vector, bestTemplate.vector)) continue;
-      final candidateScore = _cosineSimilarity(chroma, candidate.vector);
-      if (bestScore - candidateScore < complexityMargin) {
-        bestTemplate = candidate;
-        bestScore = candidateScore;
-      }
-      break;
-    }
-
-    return (chordName: bestTemplate.name, confidence: bestScore);
-  }
-
-  /// `true` si les degrés actifs de [a] forment un sous-ensemble strict de
-  /// ceux de [b] (ex. triade majeure {0,4,7} ⊂ dominante 7 {0,4,7,10}).
-  static bool _isStrictSubset(List<double> a, List<double> b) {
-    int activeInA = 0;
-    int activeInB = 0;
-    for (int i = 0; i < 12; i++) {
-      if (a[i] > 0) {
-        activeInA++;
-        if (b[i] <= 0) return false;
-      }
-      if (b[i] > 0) activeInB++;
-    }
-    return activeInA < activeInB;
+    return (
+      chordName: bestTemplate.name,
+      familyName: bestTemplate.familyName,
+      confidence: bestScore,
+    );
   }
 
   static double _cosineSimilarity(List<double> a, List<double> b) {

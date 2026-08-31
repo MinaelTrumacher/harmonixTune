@@ -92,6 +92,22 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     cumulé sur l'événement, 3 frames silencieuses consécutives pour clore
     (un simple creux ne suffit pas), et l'accord résolu reste affiché
     jusqu'au prochain onset (timeout de sécurité à ~5 s de silence total).
+- **US3 — Accords à 7e mal détectés (F/Fmaj7 flottant sur un strum tenu)**,
+  régression constatée après le correctif ci-dessus (cf. §13 de
+  `docs/STRATEGIE_DETECTION_ACCORDS.md`). Cause : le rasoir d'Occam
+  tranchait frame par frame dans `ChordTemplateLibrary.match()` — sur un
+  strum long, certaines frames franchissaient `chordComplexityMargin`,
+  d'autres non, selon la fluctuation naturelle de l'énergie de la 7e ; le
+  vote se scindait entre deux noms distincts au sein du même événement.
+  `ChordTemplateLibrary.match()` redevient un plus-proche-voisin cosinus
+  simple. `ChordTemplate`/`ChordResult` gagnent un champ `familyName`
+  (racine + majeur/mineur, sans 7e — "C"/"C7"/"Cmaj7" partagent la même
+  famille). `ChordSmoother` vote désormais par confiance cumulée sur une
+  fenêtre glissante de `chordVoteWindowSize` (6) frames, regroupée par
+  famille : la triade de base l'emporte par défaut, une variante à 7e ne
+  la détrône que si son écart moyen dépasse `chordComplexityMargin`
+  **et** qu'elle est soutenue par au moins la moitié des frames de la
+  fenêtre — un pic isolé ne suffit plus.
 - **`RecordMicrophoneDataSource` — crash "Bad state: Stream has already
   been listened to" au 2e cycle start/stop** (remonté par Crashlytics,
   `com.example.harmonix_tune.staging`). `_controller` était un champ

@@ -56,6 +56,7 @@ void main() {
           kind: SmoothedChordKind.detected,
           result: const ChordResult(
             chordName: 'C',
+            familyName: 'C',
             chromaVector: [1, 0, 0, 0, 0.8, 0, 0, 0.6, 0, 0, 0, 0],
             confidence: 0.95,
             activeNoteIndices: {0, 4, 7},
@@ -88,6 +89,7 @@ void main() {
             kind: SmoothedChordKind.detected,
             result: const ChordResult(
               chordName: 'G',
+              familyName: 'G',
               chromaVector: [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0.7],
               confidence: 0.9,
               activeNoteIndices: {7, 11, 2},

@@ -168,15 +168,13 @@ void _processHop(
     referenceA4Hz: referenceA4Hz,
     compressionGamma: AudioConstants.chordCompressionGamma,
   );
-  final match = ChordTemplateLibrary.match(
-    chroma,
-    complexityMargin: AudioConstants.chordComplexityMargin,
-  );
+  final match = ChordTemplateLibrary.match(chroma);
 
   replyPort.send(
     ChordDetectedMessage(
       ChordResult(
         chordName: match.chordName,
+        familyName: match.familyName,
         chromaVector: chroma,
         confidence: match.confidence,
         activeNoteIndices: activeNoteIndices(

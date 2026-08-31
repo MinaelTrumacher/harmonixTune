@@ -18,8 +18,10 @@ class MockChordRepository extends Mock implements ChordRepository {}
 ChordResult makeChord({
   String chordName = 'C',
   double confidence = 0.9,
+  String? familyName,
 }) => ChordResult(
   chordName: chordName,
+  familyName: familyName ?? chordName,
   chromaVector: const [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
   confidence: confidence,
   activeNoteIndices: const {0, 4, 7},

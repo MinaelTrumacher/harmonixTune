@@ -70,36 +70,56 @@ void main() {
     });
   });
 
-  group('ChordTemplateLibrary — match()', () {
-    const margin = 0.08;
+  // ── familyName (§13 — vote pondéré par famille dans ChordSmoother) ────────
 
-    test('accord C majeur pur → "C" avec confiance 1.0', () {
+  group('ChordTemplateLibrary — familyName', () {
+    test('"C", "C7" et "Cmaj7" partagent la même famille "C"', () {
+      expect(_byName('C').familyName, 'C');
+      expect(_byName('C7').familyName, 'C');
+      expect(_byName('Cmaj7').familyName, 'C');
+    });
+
+    test('"Cm" est sa propre famille (pas de variante à 7e mineure)', () {
+      expect(_byName('Cm').familyName, 'Cm');
+    });
+
+    test('chaque famille majeure regroupe exactement 3 templates', () {
+      final byFamily = <String, int>{};
+      for (final t in ChordTemplateLibrary.templates) {
+        byFamily[t.familyName] = (byFamily[t.familyName] ?? 0) + 1;
+      }
+      expect(byFamily['C'], 3); // C, C7, Cmaj7
+      expect(byFamily['Cm'], 1); // Cm seul
+    });
+  });
+
+  group('ChordTemplateLibrary — match()', () {
+    test('accord C majeur pur → "C" (famille "C") avec confiance 1.0', () {
       final chroma = List<double>.filled(12, 0.0);
       chroma[0] = 1.0; // C
       chroma[4] = 1.0; // E
       chroma[7] = 1.0; // G
 
-      final result = ChordTemplateLibrary.match(chroma, complexityMargin: margin);
+      final result = ChordTemplateLibrary.match(chroma);
       expect(result.chordName, 'C');
+      expect(result.familyName, 'C');
       expect(result.confidence, closeTo(1.0, 1e-9));
     });
 
-    test('accord La mineur pur → "Am" avec confiance 1.0', () {
+    test('accord La mineur pur → "Am" (famille "Am") avec confiance 1.0', () {
       final chroma = List<double>.filled(12, 0.0);
       chroma[9] = 1.0; // A
       chroma[0] = 1.0; // C
       chroma[4] = 1.0; // E
 
-      final result = ChordTemplateLibrary.match(chroma, complexityMargin: margin);
+      final result = ChordTemplateLibrary.match(chroma);
       expect(result.chordName, 'Am');
+      expect(result.familyName, 'Am');
       expect(result.confidence, closeTo(1.0, 1e-9));
     });
 
     test('silence (vecteur nul) → confiance 0.0, pas d\'exception', () {
-      final result = ChordTemplateLibrary.match(
-        List<double>.filled(12, 0.0),
-        complexityMargin: margin,
-      );
+      final result = ChordTemplateLibrary.match(List<double>.filled(12, 0.0));
       expect(result.confidence, 0.0);
     });
 
@@ -118,13 +138,12 @@ void main() {
   //
   // Une corde de guitare produit un fondamental + une série d'harmoniques :
   // le 5e harmonique tombe sur la tierce majeure (2 octaves plus haut), le
-  // 7e harmonique tombe près de la 7e mineure. Ces deux tests vérifient que
-  // le matching résiste à ce bruit acoustique réaliste, pas seulement à des
-  // accords de synthèse parfaitement propres.
+  // 7e harmonique tombe près de la 7e mineure. Ces deux tests vérifient
+  // qu'à contamination modérée (20%), le score brut seul (sans arbitrage
+  // triade/7e — déplacé dans ChordSmoother, cf. §13) suffit encore à
+  // préférer la lecture la plus simple.
 
   group('ChordTemplateLibrary — contamination harmonique (pics réels)', () {
-    const margin = 0.08;
-
     test(
       'accord C majeur pollué à 20% sur la 7e mineure (résidu du 7e '
       'harmonique) → reste "C", pas "C7"',
@@ -135,10 +154,7 @@ void main() {
         chroma[7] = 1.0; // G
         chroma[10] = 0.2; // Bb — résidu du 7e harmonique de C, E ou G
 
-        final result = ChordTemplateLibrary.match(
-          chroma,
-          complexityMargin: margin,
-        );
+        final result = ChordTemplateLibrary.match(chroma);
         expect(result.chordName, 'C');
       },
     );
@@ -153,78 +169,31 @@ void main() {
         chroma[7] = 1.0; // G
         chroma[4] = 0.2; // E — résidu du 5e harmonique de la fondamentale C
 
-        final result = ChordTemplateLibrary.match(
-          chroma,
-          complexityMargin: margin,
-        );
+        final result = ChordTemplateLibrary.match(chroma);
         expect(result.chordName, 'Cm');
       },
     );
-  });
 
-  // ── Rasoir d'Occam (complexityMargin) ─────────────────────────────────────
-
-  group('ChordTemplateLibrary — rasoir d\'Occam sur les templates à 4 notes', () {
     test(
-      'contamination suffisante pour que "C7" gagne au score brut, mais dans '
-      'la marge → "C" l\'emporte quand même',
+      'à contamination plus forte (50% sur la 7e mineure), le score brut '
+      'favorise déjà "C7" — c\'est exactement le cas que ChordSmoother '
+      'doit trancher sur la durée, pas cette couche',
       () {
         final chroma = List<double>.filled(12, 0.0);
         chroma[0] = 1.0;
         chroma[4] = 1.0;
         chroma[7] = 1.0;
-        chroma[10] = 0.5; // contamination forte mais pas un vrai 7e
+        chroma[10] = 0.5;
 
-        // Preuve que le score brut (sans rasoir d'Occam) favoriserait "C7".
-        final c = _byName('C');
-        final c7 = _byName('C7');
+        final result = ChordTemplateLibrary.match(chroma);
         expect(
-          _cosine(chroma, c7.vector),
-          greaterThan(_cosine(chroma, c.vector)),
-          reason: 'le test perd son sens si "C7" ne gagne pas au score brut',
+          result.chordName,
+          'C7',
+          reason:
+              'cette couche ne fait plus d\'arbitrage — confirme que la '
+              'persistance sur la fenêtre (ChordSmoother) est nécessaire',
         );
-
-        final result = ChordTemplateLibrary.match(
-          chroma,
-          complexityMargin: 0.08,
-        );
-        expect(result.chordName, 'C');
       },
     );
-
-    test(
-      'un vrai accord de dominante 7 (b7 pleine intensité) n\'est pas '
-      'supprimé par le rasoir d\'Occam',
-      () {
-        final result = ChordTemplateLibrary.match(
-          _byName('C7').vector,
-          complexityMargin: 0.08,
-        );
-        expect(result.chordName, 'C7');
-      },
-    );
-
-    test(
-      'un vrai accord majeur 7 (7e majeure pleine intensité) n\'est pas '
-      'supprimé par le rasoir d\'Occam',
-      () {
-        final result = ChordTemplateLibrary.match(
-          _byName('Cmaj7').vector,
-          complexityMargin: 0.08,
-        );
-        expect(result.chordName, 'Cmaj7');
-      },
-    );
-
-    test('marge à 0.0 : le score brut gagne toujours (rasoir désactivé)', () {
-      final chroma = List<double>.filled(12, 0.0);
-      chroma[0] = 1.0;
-      chroma[4] = 1.0;
-      chroma[7] = 1.0;
-      chroma[10] = 0.5;
-
-      final result = ChordTemplateLibrary.match(chroma, complexityMargin: 0.0);
-      expect(result.chordName, 'C7');
-    });
   });
 }

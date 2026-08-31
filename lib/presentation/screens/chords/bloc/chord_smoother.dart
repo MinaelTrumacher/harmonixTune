@@ -17,36 +17,39 @@ class SmoothedChord {
   final SmoothedChordKind kind;
 
   /// Le `ChordResult` à afficher. Pour [detected], le nom résolu et sa
-  /// confiance moyenne sur l'événement ; le `chromaVector`/
-  /// `activeNoteIndices` restent ceux de la frame la plus récente (pour un
-  /// retour visuel toujours à jour, même une fois le nom figé).
+  /// confiance moyenne sur les frames qui le soutiennent ; le
+  /// `chromaVector`/`activeNoteIndices` restent ceux de la frame la plus
+  /// récente (pour un retour visuel toujours à jour, même une fois le nom
+  /// figé).
   final ChordResult result;
 }
 
-/// Segmentation par événement (onset) — US3.
+/// Segmentation par événement (onset) + vote pondéré par famille — US3.
 ///
 /// Un strum de guitare est un événement discret (attaque → sustain →
-/// decay → silence), pas un flux continu à lisser frame par frame : lisser
-/// en continu revient à moyenner l'attaque (transitoire peu fiable) avec le
-/// sustain (signal utile) à égalité, ce qui produit le flottement observé
-/// en recette (ex. un Fmaj7 qui s'affiche brièvement "G7", "A7" avant de se
-/// stabiliser, puis qui disparaît dès que le volume retombe sous le seuil
-/// de silence alors que la note résonne encore).
+/// decay → silence), pas un flux continu à lisser frame par frame — cf.
+/// §11 de `docs/STRATEGIE_DETECTION_ACCORDS.md` pour le diagnostic initial
+/// (flottement pendant l'attaque, disparition prématurée sur la decay).
+///
+/// Le vote lui-même (§13) ne compte plus les noms exacts à égalité : il
+/// pondère par confiance cumulée sur une fenêtre glissante de
+/// [voteWindowSize] frames, regroupées par **famille** (racine + majeur/
+/// mineur, sans 7e — `ChordResult.familyName`). Une variante à 7e (7,
+/// maj7) ne détrône la triade de base de sa famille que si son écart moyen
+/// dépasse [complexityMargin] **et** qu'elle est soutenue par au moins la
+/// moitié des frames de la fenêtre — pas sur un pic isolé.
 ///
 /// Règles :
 /// - **Onset** : une frame non-silencieuse qui suit un événement clos
-///   démarre un nouvel événement. Les [attackFramesToSkip] premières frames
-///   ne participent pas au vote (transitoire d'attaque du médiator) —
-///   l'affichage précédent reste visible pendant ce temps, il ne
-///   redescend jamais sur "Indéterminé" tant qu'il y a quelque chose à
-///   montrer.
+///   démarre un nouvel événement. Les [attackFramesToSkip] premières
+///   frames ne participent pas au vote (transitoire d'attaque du
+///   médiator) — l'affichage précédent reste visible pendant ce temps.
 /// - **Vote** : à partir de la frame suivante, chaque résultat de confiance
-///   suffisante vote pour son nom d'accord ; l'affichage se met à jour en
-///   direct sur le nom majoritaire cumulé et sa confiance moyenne.
+///   suffisante alimente la fenêtre glissante ; l'affichage se met à jour
+///   en direct sur la décision recalculée à chaque frame.
 /// - **Clôture** : [eventCloseSilentFrames] frames silencieuses
 ///   consécutives closent l'événement — un creux d'une ou deux frames
-///   (battement harmonique de la corde) ne suffit pas, pour ne pas couper
-///   une note qui résonne encore.
+///   (battement harmonique de la corde) ne suffit pas.
 /// - **Persistance** : l'accord résolu reste affiché après la clôture,
 ///   jusqu'au prochain onset, avec un filet de sécurité :
 ///   [silenceTimeoutFrames] de silence total réinitialisent doucement
@@ -57,17 +60,20 @@ class ChordSmoother {
     this.eventCloseSilentFrames = AudioConstants.chordEventCloseSilentFrames,
     this.silenceTimeoutFrames = AudioConstants.chordSilenceTimeoutFrames,
     this.minConfidence = AudioConstants.chordMinConfidence,
+    this.voteWindowSize = AudioConstants.chordVoteWindowSize,
+    this.complexityMargin = AudioConstants.chordComplexityMargin,
   });
 
   final int attackFramesToSkip;
   final int eventCloseSilentFrames;
   final int silenceTimeoutFrames;
   final double minConfidence;
+  final int voteWindowSize;
+  final double complexityMargin;
 
   int _consecutiveSilentFrames = 0;
   int _framesSinceOnset = 0;
-  final Map<String, int> _votes = {};
-  final Map<String, double> _voteConfidenceSum = {};
+  final List<ChordResult> _window = [];
   SmoothedChord? _held;
 
   bool get _eventClosed => _consecutiveSilentFrames >= eventCloseSilentFrames;
@@ -86,13 +92,12 @@ class ChordSmoother {
     }
 
     // Nouvel onset : l'événement précédent était clos (ou c'est la toute
-    // première frame jouée depuis le démarrage/un reset) → on repart de
-    // zéro pour le vote. Un simple creux (< eventCloseSilentFrames) ne
-    // ferme pas l'événement en cours, donc ne déclenche pas ce reset.
+    // première frame jouée depuis le démarrage/un reset) → fenêtre vidée.
+    // Un simple creux (< eventCloseSilentFrames) ne ferme pas l'événement
+    // en cours, donc ne déclenche pas ce reset.
     if (_eventClosed) {
       _framesSinceOnset = 0;
-      _votes.clear();
-      _voteConfidenceSum.clear();
+      _window.clear();
     }
     _consecutiveSilentFrames = 0;
     _framesSinceOnset++;
@@ -104,30 +109,98 @@ class ChordSmoother {
           SmoothedChord(kind: SmoothedChordKind.indeterminate, result: raw);
     }
 
-    if (raw.confidence >= minConfidence) {
-      _votes[raw.chordName] = (_votes[raw.chordName] ?? 0) + 1;
-      _voteConfidenceSum[raw.chordName] =
-          (_voteConfidenceSum[raw.chordName] ?? 0) + raw.confidence;
+    _window.add(raw);
+    while (_window.length > voteWindowSize) {
+      _window.removeAt(0);
     }
 
-    if (_votes.isEmpty) {
+    final decision = _decide(raw);
+    if (decision == null) {
       return _held ??
           SmoothedChord(kind: SmoothedChordKind.indeterminate, result: raw);
     }
+    _held = decision;
+    return decision;
+  }
 
-    final leader = _votes.entries.reduce(
-      (a, b) => a.value >= b.value ? a : b,
-    );
-    final display = SmoothedChord(
+  /// Recalcule la décision à partir de la fenêtre glissante courante, ou
+  /// `null` si aucune frame de la fenêtre n'atteint [minConfidence].
+  SmoothedChord? _decide(ChordResult latestRaw) {
+    final familySums = <String, double>{};
+    final familyFrameCounts = <String, int>{};
+    final nameSums = <String, double>{};
+    final nameFrameCounts = <String, int>{};
+    final nameToFamily = <String, String>{};
+
+    for (final r in _window) {
+      if (r.confidence < minConfidence) continue;
+      familySums[r.familyName] = (familySums[r.familyName] ?? 0) + r.confidence;
+      familyFrameCounts[r.familyName] = (familyFrameCounts[r.familyName] ?? 0) + 1;
+      nameSums[r.chordName] = (nameSums[r.chordName] ?? 0) + r.confidence;
+      nameFrameCounts[r.chordName] = (nameFrameCounts[r.chordName] ?? 0) + 1;
+      nameToFamily[r.chordName] = r.familyName;
+    }
+    if (familySums.isEmpty) return null;
+
+    // Famille gagnante : moyenne la plus haute sur la fenêtre COMPLÈTE
+    // (dénominateur fixe = voteWindowSize, pas le nombre de frames de cette
+    // famille) — une famille qui n'apparaît que sur une frame isolée reste
+    // diluée par les autres frames de la fenêtre.
+    String bestFamily = familySums.keys.first;
+    double bestFamilyAvg = -1;
+    for (final entry in familySums.entries) {
+      final avg = entry.value / voteWindowSize;
+      if (avg > bestFamilyAvg) {
+        bestFamilyAvg = avg;
+        bestFamily = entry.key;
+      }
+    }
+
+    // Au sein de la famille gagnante : la triade de base (nom == famille)
+    // l'emporte par défaut. Une variante à 7e ne la détrône que si (a) son
+    // écart moyen dépasse complexityMargin ET (b) elle est soutenue par au
+    // moins la moitié des frames de la fenêtre — les deux critères
+    // ensemble empêchent un pic isolé de suffire.
+    final plainName = bestFamily;
+    final plainAvg = (nameSums[plainName] ?? 0) / voteWindowSize;
+    final requiredSupportFrames = (voteWindowSize / 2).ceil();
+
+    String winningName = plainName;
+    double winningAvg = plainAvg;
+    for (final name in nameSums.keys) {
+      if (name == plainName) continue;
+      if (nameToFamily[name] != bestFamily) continue;
+      final avg = nameSums[name]! / voteWindowSize;
+      final supportFrames = nameFrameCounts[name] ?? 0;
+      if (avg - plainAvg >= complexityMargin &&
+          supportFrames >= requiredSupportFrames &&
+          avg > winningAvg) {
+        winningAvg = avg;
+        winningName = name;
+      }
+    }
+
+    // Confiance affichée : moyenne parmi les frames qui soutenaient
+    // effectivement ce nom précis — plus intuitif pour l'utilisateur qu'une
+    // moyenne diluée par la taille de la fenêtre. Cas limite : la triade de
+    // base peut n'être JAMAIS apparue directement dans la fenêtre (seules
+    // ses variantes à 7e y figurent, bloquées par le garde-fou de
+    // persistance) — on retombe alors sur la moyenne de toute la famille.
+    final winningNameSum = nameSums[winningName];
+    final winningNameCount = nameFrameCounts[winningName];
+    final displayConfidence = (winningNameSum != null && winningNameCount != null)
+        ? winningNameSum / winningNameCount
+        : familySums[bestFamily]! / familyFrameCounts[bestFamily]!;
+
+    return SmoothedChord(
       kind: SmoothedChordKind.detected,
       result: ChordResult(
-        chordName: leader.key,
-        chromaVector: raw.chromaVector,
-        confidence: _voteConfidenceSum[leader.key]! / leader.value,
-        activeNoteIndices: raw.activeNoteIndices,
+        chordName: winningName,
+        familyName: bestFamily,
+        chromaVector: latestRaw.chromaVector,
+        confidence: displayConfidence,
+        activeNoteIndices: latestRaw.activeNoteIndices,
       ),
     );
-    _held = display;
-    return display;
   }
 }

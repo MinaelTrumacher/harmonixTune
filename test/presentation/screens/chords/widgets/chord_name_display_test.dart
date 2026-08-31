@@ -16,6 +16,7 @@ class MockChordDetectorBloc extends MockBloc<ChordEvent, ChordDisplayState>
 
 ChordResult _chord(String name, {double confidence = 0.9}) => ChordResult(
   chordName: name,
+  familyName: name,
   chromaVector: const [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
   confidence: confidence,
   activeNoteIndices: const {0, 4, 7},

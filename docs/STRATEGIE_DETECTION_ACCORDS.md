@@ -425,3 +425,89 @@ correctif permettra de ré-évaluer isolément l'efficacité du correctif §11.
 Test de non-régression : `record_microphone_data_source_test.dart` — un
 cycle `stream()` → `dispose()` → `stream()` complet ne doit pas lever
 d'exception.
+
+## 13. Refonte du vote : pondération par famille sur fenêtre glissante
+
+Troisième test réel (accords de base tous reconnus, mineurs encore
+inégaux selon l'accord, mais nouvelle régression : les accords à 7e
+peuvent être mal détectés — ex. guitare accordée en Fmaj7 jouée à vide,
+détectée tantôt "F" tantôt "Fmaj7"). Diagnostic : `ChordSmoother` votait
+par **nom exact** ("F" et "Fmaj7" comptés comme deux candidats séparés),
+et le rasoir d'Occam du §11 tranchait **frame par frame** dans
+`ChordTemplateLibrary.match()` — sur un strum long, certaines frames
+franchissent `chordComplexityMargin`, d'autres non, selon la fluctuation
+naturelle de l'énergie de la 7e ; le vote se scinde entre deux noms
+distincts au sein du même événement.
+
+### 13.1 Arbitrages (utilisateur, cf. échange US3)
+
+- Abandon du comptage par nom exact → vote pondéré par confiance
+  cumulée, regroupé par **famille** (même fondamentale/tierce/quinte,
+  indépendamment de la 7e) plutôt que par étiquette exacte.
+- Seuil de **persistance** : une variante à 7e ne détrône la triade de sa
+  famille que si son score dépasse celui de la triade de façon
+  **consistante** sur une fenêtre glissante (~5-8 frames), pas sur un pic
+  isolé.
+- `chordComplexityMargin` change de rôle : il ne tranche plus frame par
+  frame, il définit l'écart **moyen cumulé** minimal requis sur la
+  fenêtre.
+- Effort concentré sur les qualités réellement utilisées en pratique
+  (maj/min/7 sur les tonalités courantes de guitare, maj7 sur quelques
+  racines usuelles) plutôt que sur l'ensemble des 48 templates.
+- Niveau d'exigence visé : quasi-parfait (comme un accordeur
+  chromatique) — pas de compromis fiabilité/rapidité accepté par défaut.
+- Méthodologie : itérative (test réel → rapport → ajustement), pas de
+  banc d'échantillons audio pour l'instant.
+
+### 13.2 Ce qui change dans le code
+
+- `ChordTemplateLibrary.match()` redevient un plus-proche-voisin cosinus
+  simple (plus de `complexityMargin`) — l'arbitrage triade/7e n'a plus sa
+  place ici, évalué frame par frame il ne peut pas distinguer un pic
+  isolé d'une tendance soutenue.
+- `ChordTemplate`/`ChordResult` gagnent un champ `familyName` (racine +
+  majeur/mineur, sans 7e) : "C", "C7" et "Cmaj7" partagent `familyName`
+  "C" ; "Cm" est sa propre famille (pas de variante à 7e mineure dans le
+  jeu de qualités actuel). Généré à partir du nom de racine, pas dérivé
+  du vecteur — évite toute ambiguïté si deux familles finissaient par
+  partager des degrés actifs.
+- `ChordSmoother` (entièrement réécrit) maintient une fenêtre glissante
+  des `chordVoteWindowSize` (6, plage envisagée 5-8) dernières frames
+  qualifiantes de l'événement en cours. À chaque frame :
+  1. **Famille gagnante** : moyenne de confiance la plus haute sur la
+     fenêtre (dénominateur **fixe** = taille de fenêtre, pas le nombre
+     de frames de cette famille) — une famille qui n'apparaît que sur
+     une frame isolée reste diluée par le reste de la fenêtre.
+  2. **Triade vs 7e au sein de la famille** : la triade de base l'emporte
+     par défaut. Une variante à 7e ne la détrône que si (a) son écart
+     moyen dépasse `chordComplexityMargin` **et** (b) elle est soutenue
+     par au moins la moitié des frames de la fenêtre — les deux critères
+     ensemble empêchent un pic isolé de suffire, conformément à
+     l'arbitrage utilisateur.
+  3. Confiance affichée : moyenne des frames qui soutiennent
+     effectivement le nom retenu (repli sur la moyenne de toute la
+     famille si la triade de base n'est jamais apparue directement dans
+     la fenêtre — cas limite où seule une 7e isolée, bloquée par le
+     garde-fou, a été observée).
+- Les mécanismes d'onset/clôture/persistance/timeout du §11 (attaque
+  ignorée, clôture après plusieurs frames silencieuses consécutives,
+  affichage tenu jusqu'au prochain onset) sont **inchangés** — seul le
+  contenu du vote change, pas la segmentation temporelle.
+
+### 13.3 Tests
+
+- `chord_template_library_test.dart` : `match()` sans `complexityMargin`,
+  nouveau groupe `familyName` (regroupement, comptage par famille), et le
+  test de contamination à 50 % documente explicitement que cette couche
+  ne tranche plus (`ChordSmoother` s'en charge désormais).
+- `chord_smoother_test.dart` : entièrement réécrit — vote pondéré simple,
+  dilution d'une famille sous-représentée, la 7e qui l'emporte
+  légitimement (soutien + marge), le pic isolé qui échoue, l'écart
+  insuffisant malgré un soutien suffisant, et le cas limite de repli sur
+  la moyenne de famille.
+
+### 13.4 Point ouvert
+
+Accords mineurs "encore plus difficiles selon l'accord" : liste précise
+et évolution depuis le correctif §11 pas encore fournies par
+l'utilisateur — aucune action prise sur ce point, en attente.
