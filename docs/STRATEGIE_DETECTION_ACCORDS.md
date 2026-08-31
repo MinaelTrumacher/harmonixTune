@@ -389,3 +389,39 @@ suivant ou au timeout.
 l'algorithme sur du signal organique, au-delà des sinusoïdes de synthèse et
 des vecteurs pollués artificiellement. Ces derniers couvrent le mécanisme de
 correction mais restent des approximations construites à la main.
+
+## 12. Correctif complémentaire : crash micro sur réutilisation start/stop
+
+Second test réel (guitare, pièce calme, accords isolés) : le correctif §11
+n'a pas suffi — un La mineur reconnu en Ré majeur, un seul accord juste sur
+toute la session. Le rapport Crashlytics remonté par l'utilisateur a révélé
+la vraie cause, indépendante de l'acoustique : `RecordMicrophoneDataSource`
+plantait (`Bad state: Stream has already been listened to`,
+`chord_repository_impl.dart:59`) dès le 2e cycle start/stop de la session
+(ex. changement d'onglet, pause/reprise app) — `_controller` était un champ
+`final` jamais recréé après `dispose()`, alors qu'`AudioRepositoryImpl` et
+`ChordRepositoryImpl` réutilisent la même instance sur toute la durée de vie
+de l'écran. Un Stream Dart à abonnement unique ne peut être écouté qu'une
+fois dans sa vie, même après cancel/close.
+
+Point important : `AudioRecorder` (paquet `record`) est lui-même déjà conçu
+pour être réutilisé après `dispose()` (vérifié en lisant sa source —
+`_created ??= await _create()` recrée la session native à la demande, son
+flux interne est un `StreamController.broadcast()`) — seul notre propre
+`StreamController` ne l'était pas. Le correctif recrée `_controller` à
+chaque appel de `stream()`, sans toucher à la gestion du recorder.
+
+Ce bug est partagé avec le Tuner (même classe `RecordMicrophoneDataSource`,
+même pattern d'instance unique réutilisée) — latent depuis le début, jamais
+capturé côté Tuner faute de cycles pause/reprise assez répétés en usage
+normal. Conséquence probable sur la session de test : le crash coupe le
+flux micro vers l'Isolate déjà démarré et accroché — plus aucune détection
+n'arrive ensuite, ce qui peut donner l'impression trompeuse d'un accord
+"figé" à l'écran plutôt que d'une vraie erreur de reconnaissance en cours.
+Reste à confirmer si ce crash explique la totalité de l'épisode "La mineur
+→ Ré majeur" ou seulement une partie — un nouveau test réel après ce
+correctif permettra de ré-évaluer isolément l'efficacité du correctif §11.
+
+Test de non-régression : `record_microphone_data_source_test.dart` — un
+cycle `stream()` → `dispose()` → `stream()` complet ne doit pas lever
+d'exception.

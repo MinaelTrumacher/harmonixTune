@@ -80,6 +80,22 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     cumulé sur l'événement, 3 frames silencieuses consécutives pour clore
     (un simple creux ne suffit pas), et l'accord résolu reste affiché
     jusqu'au prochain onset (timeout de sécurité à ~5 s de silence total).
+- **`RecordMicrophoneDataSource` — crash "Bad state: Stream has already
+  been listened to" au 2e cycle start/stop** (remonté par Crashlytics,
+  `com.example.harmonix_tune.staging`). `_controller` était un champ
+  `final`, créé une seule fois à la construction ; `dispose()` le fermait
+  sans jamais le recréer. Or `AudioRepositoryImpl`/`ChordRepositoryImpl`
+  réutilisent la même instance de `RecordMicrophoneDataSource` sur toute la
+  durée de vie de l'écran (pause/reprise de l'app, changement d'onglet
+  répété) — un Stream Dart à abonnement unique ne pouvant être écouté
+  qu'une seule fois dans sa vie, le 2e `stream().listen()` plantait
+  systématiquement. `AudioRecorder` (paquet `record`) était déjà conçu pour
+  être réutilisé après `dispose()` (recréation interne de sa session
+  native) — seul notre `StreamController` ne l'était pas. `_controller`
+  recréé désormais à chaque appel de `stream()`. Ce crash coupait
+  silencieusement le flux micro vers l'Isolate (déjà démarré et accroché) :
+  plus aucune détection n'arrivait ensuite, ce qui pouvait donner
+  l'impression trompeuse d'un accord "figé" à l'écran.
 
 ### Modifié
 - CI : l'upload de couverture vers Codecov est désormais ignoré pour les
