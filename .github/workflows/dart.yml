@@ -13,7 +13,7 @@ jobs:
     steps:
       # 1. Récupération du code source
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # 2. FIX : Utilisation de l'action officielle pour installer Java
       - name: Setup Java JDK
@@ -70,7 +70,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java JDK
         uses: actions/setup-java@v6
