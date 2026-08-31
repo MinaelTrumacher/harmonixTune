@@ -10,6 +10,7 @@ class TuningConfiguration {
     this.targetString,
     this.instrumentType = InstrumentType.guitar,
     this.intelliTunerActive = false,
+    this.presetId,
   });
 
   final double referencePitchHz;
@@ -19,6 +20,9 @@ class TuningConfiguration {
   final InstrumentType instrumentType;
   // Indique au worker d'activer le filtre IIR sur la fréquence de targetString.
   final bool intelliTunerActive;
+  // Identifiant du TuningProfile actif (`null` = accordage standard, pas un
+  // profil personnalisé sauvegardé) — cf. TuningPresetSelector.
+  final String? presetId;
 
   static const TuningConfiguration standard = TuningConfiguration();
 
@@ -30,6 +34,8 @@ class TuningConfiguration {
     bool clearTargetString = false,
     InstrumentType? instrumentType,
     bool? intelliTunerActive,
+    String? presetId,
+    bool clearPresetId = false,
   }) {
     return TuningConfiguration(
       referencePitchHz: referencePitchHz ?? this.referencePitchHz,
@@ -40,6 +46,7 @@ class TuningConfiguration {
           : (targetString ?? this.targetString),
       instrumentType: instrumentType ?? this.instrumentType,
       intelliTunerActive: intelliTunerActive ?? this.intelliTunerActive,
+      presetId: clearPresetId ? null : (presetId ?? this.presetId),
     );
   }
 
@@ -52,6 +59,7 @@ class TuningConfiguration {
     if (other.targetString != targetString) return false;
     if (other.instrumentType != instrumentType) return false;
     if (other.intelliTunerActive != intelliTunerActive) return false;
+    if (other.presetId != presetId) return false;
     if (other.stringNotes.length != stringNotes.length) return false;
     for (int i = 0; i < stringNotes.length; i++) {
       if (other.stringNotes[i] != stringNotes[i]) return false;
@@ -66,6 +74,7 @@ class TuningConfiguration {
     targetString,
     instrumentType,
     intelliTunerActive,
+    presetId,
     Object.hashAll(stringNotes),
   );
 }

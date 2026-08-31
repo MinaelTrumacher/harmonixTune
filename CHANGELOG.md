@@ -10,6 +10,18 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
 ## [Non publié]
 
 ### Ajouté
+- **Sélecteur de profil d'accordage sur l'écran Tuner** — les deux boutons
+  "Standard"/"Guitar" étaient des reliquats de la maquette UI d'origine
+  (`onTap: () {}`, jamais raccordés) : un profil créé dans Presets n'avait
+  aucun moyen d'être appliqué au Tuner. Remplacés par
+  `TuningPresetSelector` : bottom sheet listant "Standard" + tous les
+  profils sauvegardés (`TuningProfileRepository.watchAll()`), coche visuelle
+  sur le profil actif. `TuningConfiguration` gagne un champ `presetId`
+  (`null` = accordage standard) pour savoir quel profil est actif.
+  `TunerBloc._onConfigChanged` passe désormais par
+  `AudioRepository.updateConfig()` au lieu de relancer l'Isolate/le micro
+  (`_subscribeToRepo()`) — changer de preset ou revenir au mode standard ne
+  coupe plus l'écoute en cours.
 - **US3 — Détection d'accords (étapes 1-6/6, cf.
   `docs/STRATEGIE_DETECTION_ACCORDS.md`)** : reconnaissance d'accords en
   temps réel (polyphonie continue) utilisable de bout en bout dans
