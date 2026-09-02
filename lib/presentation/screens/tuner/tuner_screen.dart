@@ -6,6 +6,7 @@ import 'package:gap/gap.dart';
 
 import '../../../data/datasources/record_microphone_data_source.dart';
 import '../../../data/repositories/audio_repository_impl.dart';
+import '../../../domain/repositories/tuning_profile_repository.dart';
 import '../../shared/app_header.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
@@ -17,7 +18,7 @@ import 'widgets/intelli_tuner_toggle.dart';
 import 'widgets/note_display_widget.dart';
 import 'widgets/string_selector_widget.dart';
 import 'widgets/tuner_needle_widget.dart';
-import 'widgets/tuning_preset_chip.dart';
+import 'widgets/tuning_preset_selector.dart';
 
 // Clé de comparaison pour le buildWhen du label de cents.
 // Retourne la chaîne affichée — rebuild uniquement si elle change.
@@ -33,12 +34,14 @@ String _centsLabel(TunerDisplayState state) {
 class TunerScreen extends StatefulWidget {
   const TunerScreen({
     super.key,
+    required this.tuningProfileRepository,
     this.isActive = true,
     TunerBloc Function()? blocBuilder,
   }) : _blocBuilder = blocBuilder;
 
   /// Onglet Tuner visible à l'écran (BUG-03) — piloté par `MainShell`.
   final bool isActive;
+  final TuningProfileRepository tuningProfileRepository;
   final TunerBloc Function()? _blocBuilder;
 
   @override
@@ -73,7 +76,10 @@ class _TunerScreenState extends State<TunerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(value: _bloc, child: const _TunerView());
+    return RepositoryProvider.value(
+      value: widget.tuningProfileRepository,
+      child: BlocProvider.value(value: _bloc, child: const _TunerView()),
+    );
   }
 }
 
@@ -166,14 +172,14 @@ class _TunerContent extends StatelessWidget {
           // ── Header ───────────────────────────────────────────────────────
           const AppHeader(),
 
-          // ── Preset + Instrument ──────────────────────────────────────────
+          // ── Preset ───────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                TuningPresetChip(label: 'Standard', onTap: () {}),
-                const Gap(8),
-                TuningPresetChip(label: 'Guitar', onTap: () {}),
+                TuningPresetSelector(
+                  repository: context.read<TuningProfileRepository>(),
+                ),
               ],
             ),
           ),

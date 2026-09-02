@@ -17,7 +17,14 @@ class RecordMicrophoneDataSource implements MicrophoneDataSource {
   final _accumulator = AudioBufferAccumulator(
     AudioConstants.bufferSize * 2,
   ); // N × 2 bytes
-  final _controller = StreamController<Uint8List>();
+  // Recréé à chaque stream() (cf. plus bas) — pas final : un Stream Dart à
+  // abonnement unique ne peut être écouté qu'une seule fois dans toute sa
+  // vie, même après cancel/close. Cette instance est réutilisée sur
+  // plusieurs cycles start/stop (pause/reprise, changement d'onglet) par
+  // AudioRepositoryImpl/ChordRepositoryImpl — contrairement à AudioRecorder
+  // (voir stream() ci-dessous), un StreamController figé ne survivrait pas
+  // à un 2e cycle.
+  StreamController<Uint8List>? _controller;
   StreamSubscription<Uint8List>? _subscription;
 
   @override
@@ -36,11 +43,13 @@ class RecordMicrophoneDataSource implements MicrophoneDataSource {
 
   @override
   Stream<Uint8List> stream() {
-    _startRecording();
-    return _controller.stream;
+    final controller = StreamController<Uint8List>();
+    _controller = controller;
+    _startRecording(controller);
+    return controller.stream;
   }
 
-  Future<void> _startRecording() async {
+  Future<void> _startRecording(StreamController<Uint8List> controller) async {
     final rawStream = await _recorder.startStream(
       const RecordConfig(
         encoder: AudioEncoder.pcm16bits,
@@ -51,10 +60,10 @@ class RecordMicrophoneDataSource implements MicrophoneDataSource {
     _subscription = rawStream.listen(
       (chunk) {
         for (final buf in _accumulator.feed(chunk)) {
-          _controller.add(buf);
+          controller.add(buf);
         }
       },
-      onError: _controller.addError,
+      onError: controller.addError,
       cancelOnError: false,
     );
   }
@@ -66,6 +75,17 @@ class RecordMicrophoneDataSource implements MicrophoneDataSource {
     await _recorder.stop();
     await _recorder.dispose();
     _accumulator.clear();
-    await _controller.close();
+
+    final controller = _controller;
+    _controller = null;
+    if (controller == null) return;
+    // close() retourne un Future qui attend la livraison du `done` à chaque
+    // abonné. Sans abonné (dispose() appelé sans stream() préalable) ce
+    // Future ne se complète JAMAIS → on n'awaite pas dans ce cas.
+    if (controller.hasListener) {
+      await controller.close();
+    } else {
+      unawaited(controller.close());
+    }
   }
 }

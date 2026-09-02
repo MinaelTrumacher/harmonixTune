@@ -5,12 +5,16 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:harmonix_tune/domain/entities/tuning_configuration.dart';
 import 'package:harmonix_tune/domain/repositories/audio_repository.dart';
+import 'package:harmonix_tune/domain/repositories/tuning_profile_repository.dart';
 import 'package:harmonix_tune/presentation/screens/tuner/bloc/tuner_bloc.dart';
 import 'package:harmonix_tune/presentation/screens/tuner/bloc/tuner_event.dart';
 import 'package:harmonix_tune/presentation/screens/tuner/bloc/tuner_state.dart';
 import 'package:harmonix_tune/presentation/screens/tuner/tuner_screen.dart';
 
 class MockAudioRepository extends Mock implements AudioRepository {}
+
+class MockTuningProfileRepository extends Mock
+    implements TuningProfileRepository {}
 
 class FakeTuningConfiguration extends Fake implements TuningConfiguration {}
 
@@ -40,6 +44,7 @@ void main() {
 
   group('montage initial (TunerBloc réel)', () {
     late MockAudioRepository mockRepo;
+    late MockTuningProfileRepository mockProfileRepo;
 
     setUp(() {
       mockRepo = MockAudioRepository();
@@ -48,12 +53,18 @@ void main() {
       when(
         () => mockRepo.streamPitch(any()),
       ).thenAnswer((_) => const Stream.empty());
+
+      mockProfileRepo = MockTuningProfileRepository();
+      when(
+        () => mockProfileRepo.watchAll(),
+      ).thenAnswer((_) => Stream.value(const []));
     });
 
     Widget buildApp({required bool isActive}) {
       return MaterialApp(
         home: TunerScreen(
           isActive: isActive,
+          tuningProfileRepository: mockProfileRepo,
           blocBuilder: () => TunerBloc(mockRepo),
         ),
       );
@@ -93,16 +104,26 @@ void main() {
 
   group('transitions isActive (TunerBloc mocké)', () {
     late MockTunerBloc mockBloc;
+    late MockTuningProfileRepository mockProfileRepo;
 
     setUp(() {
       mockBloc = MockTunerBloc();
       when(() => mockBloc.state).thenReturn(const TunerInitial());
       when(() => mockBloc.close()).thenAnswer((_) async {});
+
+      mockProfileRepo = MockTuningProfileRepository();
+      when(
+        () => mockProfileRepo.watchAll(),
+      ).thenAnswer((_) => Stream.value(const []));
     });
 
     Widget buildApp({required bool isActive}) {
       return MaterialApp(
-        home: TunerScreen(isActive: isActive, blocBuilder: () => mockBloc),
+        home: TunerScreen(
+          isActive: isActive,
+          tuningProfileRepository: mockProfileRepo,
+          blocBuilder: () => mockBloc,
+        ),
       );
     }
 

@@ -20,9 +20,12 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      TunerScreen(isActive: _currentIndex == 0),
+      TunerScreen(
+        isActive: _currentIndex == 0,
+        tuningProfileRepository: widget.tuningProfileRepository,
+      ),
       PresetsScreen(repository: widget.tuningProfileRepository),
-      const ChordsScreen(),
+      ChordsScreen(isActive: _currentIndex == 2),
     ];
 
     return Scaffold(

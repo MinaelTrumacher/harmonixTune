@@ -123,12 +123,26 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     emit(TunerPermissionDeniedState(isPermanent: event.isPermanent));
   }
 
+  // Changement de profil d'accordage (Standard <-> preset personnalisé) :
+  // met à jour la config de l'Isolate déjà en cours via `updateConfig` — pas
+  // de `_subscribeToRepo()` (qui couperait/relancerait l'Isolate et le
+  // micro). Le musicien doit pouvoir changer de preset "sans coupure".
   Future<void> _onConfigChanged(
     ConfigChanged event,
     Emitter<TunerDisplayState> emit,
   ) async {
     _config = event.config;
-    await _subscribeToRepo();
+    _intelliTunerEnabled = _config.intelliTunerActive;
+    await _audioRepository.updateConfig(_config);
+    if (!isClosed && state is TunerListening) {
+      emit(
+        TunerListening(
+          pitch: (state as TunerListening).pitch,
+          config: _config,
+          intelliTunerEnabled: _intelliTunerEnabled,
+        ),
+      );
+    }
   }
 
   void _onStringSelected(

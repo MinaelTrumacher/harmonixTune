@@ -8,19 +8,25 @@ import '../constants/audio_constants.dart';
 abstract final class NoteFrequencyConverter {
   static final RegExp _pattern = RegExp(r'^([A-Ga-g])(#?)(-?\d+)$');
 
-  static const Map<String, int> _semitoneIndex = {
-    'C': 0,
-    'C#': 1,
-    'D': 2,
-    'D#': 3,
-    'E': 4,
-    'F': 5,
-    'F#': 6,
-    'G': 7,
-    'G#': 8,
-    'A': 9,
-    'A#': 10,
-    'B': 11,
+  // Convention MIDI standard C=0 — réutilisée telle quelle pour indexer le
+  // chromagramme (détection d'accords) afin d'éviter une 2e table dupliquée.
+  static const List<String> chromaticScale = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B',
+  ];
+
+  static final Map<String, int> _semitoneIndex = {
+    for (int i = 0; i < chromaticScale.length; i++) chromaticScale[i]: i,
   };
 
   // Retourne null si `note` n'est pas au format "<Lettre>[#]<octave>"
