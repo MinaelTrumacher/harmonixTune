@@ -214,30 +214,27 @@ void main() {
       },
     );
 
-    test(
-      'stream() reste écoutable après un cycle dispose() (réutilisation '
-      'start/stop — ex. pause/reprise, changement d\'onglet)',
-      () async {
-        // Un Stream Dart à abonnement unique ne peut être écouté qu'une
-        // seule fois dans toute sa vie, même après cancel/close. Comme
-        // AudioRepositoryImpl/ChordRepositoryImpl réutilisent la même
-        // instance de RecordMicrophoneDataSource sur plusieurs cycles
-        // start/stop, stream() doit rester utilisable après un dispose().
-        when(
-          () => mockRecorder.startStream(any()),
-        ).thenAnswer((_) async => const Stream<Uint8List>.empty());
-        when(() => mockRecorder.stop()).thenAnswer((_) async => null);
-        when(() => mockRecorder.dispose()).thenAnswer((_) async {});
+    test('stream() reste écoutable après un cycle dispose() (réutilisation '
+        'start/stop — ex. pause/reprise, changement d\'onglet)', () async {
+      // Un Stream Dart à abonnement unique ne peut être écouté qu'une
+      // seule fois dans toute sa vie, même après cancel/close. Comme
+      // AudioRepositoryImpl/ChordRepositoryImpl réutilisent la même
+      // instance de RecordMicrophoneDataSource sur plusieurs cycles
+      // start/stop, stream() doit rester utilisable après un dispose().
+      when(
+        () => mockRecorder.startStream(any()),
+      ).thenAnswer((_) async => const Stream<Uint8List>.empty());
+      when(() => mockRecorder.stop()).thenAnswer((_) async => null);
+      when(() => mockRecorder.dispose()).thenAnswer((_) async {});
 
-        final sub1 = dataSource.stream().listen((_) {});
-        await Future<void>.delayed(Duration.zero);
-        await dataSource.dispose();
-        await sub1.cancel();
+      final sub1 = dataSource.stream().listen((_) {});
+      await Future<void>.delayed(Duration.zero);
+      await dataSource.dispose();
+      await sub1.cancel();
 
-        // 2e cycle : ne doit pas lancer "Bad state: Stream has already
-        // been listened to."
-        expect(() => dataSource.stream().listen((_) {}), returnsNormally);
-      },
-    );
+      // 2e cycle : ne doit pas lancer "Bad state: Stream has already
+      // been listened to."
+      expect(() => dataSource.stream().listen((_) {}), returnsNormally);
+    });
   });
 }

@@ -48,22 +48,20 @@ class ChordDetectorBloc extends Bloc<ChordEvent, ChordDisplayState>
   Future<void> _subscribeToRepo() async {
     await _subscription?.cancel();
     _subscription = null;
-    _subscription = _chordRepository
-        .streamChord()
-        .listen(
-          (result) {
-            if (!isClosed) add(ChordReceived(result));
-          },
-          onError: (Object error, StackTrace stack) {
-            if (isClosed) return;
-            if (error is AudioPermissionException) {
-              add(ChordPermissionDenied(isPermanent: error.isPermanent));
-            } else {
-              add(const StopChordDetection());
-            }
-          },
-          cancelOnError: true,
-        );
+    _subscription = _chordRepository.streamChord().listen(
+      (result) {
+        if (!isClosed) add(ChordReceived(result));
+      },
+      onError: (Object error, StackTrace stack) {
+        if (isClosed) return;
+        if (error is AudioPermissionException) {
+          add(ChordPermissionDenied(isPermanent: error.isPermanent));
+        } else {
+          add(const StopChordDetection());
+        }
+      },
+      cancelOnError: true,
+    );
   }
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -73,20 +71,15 @@ class ChordDetectorBloc extends Bloc<ChordEvent, ChordDisplayState>
     Emitter<ChordDisplayState> emit,
   ) => _guarded(_subscribeToRepo);
 
-  Future<void> _onStop(
-    StopChordDetection _,
-    Emitter<ChordDisplayState> emit,
-  ) => _guarded(() async {
-    await _subscription?.cancel();
-    _subscription = null;
-    await _chordRepository.stop();
-    if (!isClosed) emit(const ChordInitial());
-  });
+  Future<void> _onStop(StopChordDetection _, Emitter<ChordDisplayState> emit) =>
+      _guarded(() async {
+        await _subscription?.cancel();
+        _subscription = null;
+        await _chordRepository.stop();
+        if (!isClosed) emit(const ChordInitial());
+      });
 
-  void _onChordReceived(
-    ChordReceived event,
-    Emitter<ChordDisplayState> emit,
-  ) {
+  void _onChordReceived(ChordReceived event, Emitter<ChordDisplayState> emit) {
     final smoothed = _smoother.push(event.result);
     emit(ChordListening(smoothed: smoothed));
   }
@@ -105,8 +98,7 @@ class ChordDetectorBloc extends Bloc<ChordEvent, ChordDisplayState>
     if (state == AppLifecycleState.paused) {
       _wasListeningBeforePause = this.state is ChordListening;
       if (!isClosed) add(const StopChordDetection());
-    } else if (state == AppLifecycleState.resumed &&
-        _wasListeningBeforePause) {
+    } else if (state == AppLifecycleState.resumed && _wasListeningBeforePause) {
       _wasListeningBeforePause = false;
       if (!isClosed) add(const StartChordDetection());
     }

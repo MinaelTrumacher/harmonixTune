@@ -165,8 +165,7 @@ void main() {
       },
       wait: const Duration(milliseconds: 50),
       verify: (_) => verifyNever(
-        () =>
-            mockRepo.streamChord(referenceA4Hz: any(named: 'referenceA4Hz')),
+        () => mockRepo.streamChord(referenceA4Hz: any(named: 'referenceA4Hz')),
       ),
     );
 
@@ -182,11 +181,9 @@ void main() {
       },
       wait: const Duration(milliseconds: 50),
       verify: (_) => verifyInOrder([
-        () =>
-            mockRepo.streamChord(referenceA4Hz: any(named: 'referenceA4Hz')),
+        () => mockRepo.streamChord(referenceA4Hz: any(named: 'referenceA4Hz')),
         () => mockRepo.stop(),
-        () =>
-            mockRepo.streamChord(referenceA4Hz: any(named: 'referenceA4Hz')),
+        () => mockRepo.streamChord(referenceA4Hz: any(named: 'referenceA4Hz')),
       ]),
     );
   });
@@ -223,11 +220,7 @@ void main() {
         ),
         isA<ChordListening>()
             .having((s) => s.smoothed.kind, 'kind', SmoothedChordKind.detected)
-            .having(
-              (s) => s.smoothed.result.chordName,
-              'chordName',
-              'G',
-            ),
+            .having((s) => s.smoothed.result.chordName, 'chordName', 'G'),
       ],
     );
   });

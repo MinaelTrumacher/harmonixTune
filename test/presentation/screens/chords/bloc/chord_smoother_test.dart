@@ -69,112 +69,114 @@ void main() {
       expect(r.result.confidence, closeTo(0.7875, 1e-9));
     });
 
-    test(
-      'les frames sous chordMinConfidence n\'entrent pas dans le vote',
-      () {
-        final smoother = makeSmoother();
-        _skipAttack(smoother);
-        final r = smoother.push(makeChord(chordName: 'C', confidence: 0.5));
-        expect(r.kind, SmoothedChordKind.indeterminate);
-      },
-    );
+    test('les frames sous chordMinConfidence n\'entrent pas dans le vote', () {
+      final smoother = makeSmoother();
+      _skipAttack(smoother);
+      final r = smoother.push(makeChord(chordName: 'C', confidence: 0.5));
+      expect(r.kind, SmoothedChordKind.indeterminate);
+    });
 
-    test(
-      'une famille diluée sur une seule frame perd face à une famille '
-      'mieux représentée dans la fenêtre',
-      () {
-        final smoother = makeSmoother();
-        _skipAttack(smoother);
-        // 1 frame "G" contre 3 frames "C" — "C" doit dominer la moyenne
-        // sur la fenêtre (dénominateur fixe = 6), même si "G" a une
-        // confiance ponctuelle plus haute.
-        smoother.push(makeChord(chordName: 'G', confidence: 0.99));
-        smoother.push(makeChord(chordName: 'C', confidence: 0.8));
-        smoother.push(makeChord(chordName: 'C', confidence: 0.8));
-        final r = smoother.push(makeChord(chordName: 'C', confidence: 0.8));
+    test('une famille diluée sur une seule frame perd face à une famille '
+        'mieux représentée dans la fenêtre', () {
+      final smoother = makeSmoother();
+      _skipAttack(smoother);
+      // 1 frame "G" contre 3 frames "C" — "C" doit dominer la moyenne
+      // sur la fenêtre (dénominateur fixe = 6), même si "G" a une
+      // confiance ponctuelle plus haute.
+      smoother.push(makeChord(chordName: 'G', confidence: 0.99));
+      smoother.push(makeChord(chordName: 'C', confidence: 0.8));
+      smoother.push(makeChord(chordName: 'C', confidence: 0.8));
+      final r = smoother.push(makeChord(chordName: 'C', confidence: 0.8));
 
-        expect(r.result.chordName, 'C');
-      },
-    );
+      expect(r.result.chordName, 'C');
+    });
   });
 
   group('ChordSmoother — persistance requise pour une variante à 7e', () {
-    test(
-      '"F7" l\'emporte sur "F" quand il est soutenu par au moins la '
-      'moitié de la fenêtre ET dépasse la marge en moyenne',
-      () {
-        final smoother = makeSmoother();
-        _skipAttack(smoother);
-        // Fenêtre pleine (6) : 4×F7 (0.9) + 2×F (0.9).
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-        final r = smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+    test('"F7" l\'emporte sur "F" quand il est soutenu par au moins la '
+        'moitié de la fenêtre ET dépasse la marge en moyenne', () {
+      final smoother = makeSmoother();
+      _skipAttack(smoother);
+      // Fenêtre pleine (6) : 4×F7 (0.9) + 2×F (0.9).
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      final r = smoother.push(makeChord(chordName: 'F', confidence: 0.9));
 
-        expect(r.result.chordName, 'F7');
-        // Moyenne des 4 frames F7 : (0.9*4)/4
-        expect(r.result.confidence, closeTo(0.9, 1e-9));
-      },
-    );
+      expect(r.result.chordName, 'F7');
+      // Moyenne des 4 frames F7 : (0.9*4)/4
+      expect(r.result.confidence, closeTo(0.9, 1e-9));
+    });
 
-    test(
-      'un pic isolé de "F7" (1 seule frame de soutien) ne suffit pas '
-      'même à confiance très élevée — reste sur la triade "F"',
-      () {
-        final smoother = makeSmoother();
-        _skipAttack(smoother);
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.99));
-        smoother.push(makeChord(chordName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F', confidence: 0.9));
-        final r = smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+    test('un pic isolé de "F7" (1 seule frame de soutien) ne suffit pas '
+        'même à confiance très élevée — reste sur la triade "F"', () {
+      final smoother = makeSmoother();
+      _skipAttack(smoother);
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.99),
+      );
+      smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+      smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+      smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+      smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+      final r = smoother.push(makeChord(chordName: 'F', confidence: 0.9));
 
-        expect(r.result.chordName, 'F');
-      },
-    );
+      expect(r.result.chordName, 'F');
+    });
 
-    test(
-      'soutien suffisant (3/6) mais écart moyen sous la marge → reste '
-      'sur la triade',
-      () {
-        final smoother = makeSmoother(); // complexityMargin = 0.08
-        _skipAttack(smoother);
-        // 3×F7 (0.9) + 3×F (0.9) : moyennes égales → écart nul.
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F', confidence: 0.9));
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-        final r = smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+    test('soutien suffisant (3/6) mais écart moyen sous la marge → reste '
+        'sur la triade', () {
+      final smoother = makeSmoother(); // complexityMargin = 0.08
+      _skipAttack(smoother);
+      // 3×F7 (0.9) + 3×F (0.9) : moyennes égales → écart nul.
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      smoother.push(makeChord(chordName: 'F', confidence: 0.9));
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      final r = smoother.push(makeChord(chordName: 'F', confidence: 0.9));
 
-        expect(r.result.chordName, 'F');
-      },
-    );
+      expect(r.result.chordName, 'F');
+    });
 
-    test(
-      'cas limite : la triade de base n\'apparaît jamais directement '
-      '(seule une 7e isolée, bloquée par le garde-fou) — pas d\'exception, '
-      'confiance repliée sur la moyenne de la famille',
-      () {
-        final smoother = makeSmoother();
-        _skipAttack(smoother);
-        smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.95));
-        // Les 5 frames suivantes sont sous chordMinConfidence → ignorées du
-        // vote, mais occupent quand même la fenêtre glissante.
-        for (int i = 0; i < 4; i++) {
-          smoother.push(makeChord(chordName: 'Z', familyName: 'Z', confidence: 0.5));
-        }
-        final r = smoother.push(
+    test('cas limite : la triade de base n\'apparaît jamais directement '
+        '(seule une 7e isolée, bloquée par le garde-fou) — pas d\'exception, '
+        'confiance repliée sur la moyenne de la famille', () {
+      final smoother = makeSmoother();
+      _skipAttack(smoother);
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.95),
+      );
+      // Les 5 frames suivantes sont sous chordMinConfidence → ignorées du
+      // vote, mais occupent quand même la fenêtre glissante.
+      for (int i = 0; i < 4; i++) {
+        smoother.push(
           makeChord(chordName: 'Z', familyName: 'Z', confidence: 0.5),
         );
+      }
+      final r = smoother.push(
+        makeChord(chordName: 'Z', familyName: 'Z', confidence: 0.5),
+      );
 
-        expect(r.result.chordName, 'F');
-        expect(r.result.confidence, closeTo(0.95, 1e-9));
-      },
-    );
+      expect(r.result.chordName, 'F');
+      expect(r.result.confidence, closeTo(0.95, 1e-9));
+    });
   });
 
   group('ChordSmoother — clôture d\'événement (creux vs vraie fin)', () {
@@ -198,9 +200,15 @@ void main() {
         '(ne disparaît pas)', () {
       final smoother = makeSmoother();
       _skipAttack(smoother);
-      smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-      smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
-      smoother.push(makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9));
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
+      smoother.push(
+        makeChord(chordName: 'F7', familyName: 'F', confidence: 0.9),
+      );
 
       final s1 = smoother.push(ChordResult.silent);
       final s2 = smoother.push(ChordResult.silent);

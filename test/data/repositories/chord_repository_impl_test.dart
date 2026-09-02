@@ -182,10 +182,7 @@ void main() {
       when(() => mockSource.stream()).thenAnswer((_) => pcmController.stream);
 
       bool done = false;
-      final sub = repo.streamChord().listen(
-        (_) {},
-        onDone: () => done = true,
-      );
+      final sub = repo.streamChord().listen((_) {}, onDone: () => done = true);
 
       await Future<void>.delayed(const Duration(milliseconds: 200));
       await repo.stop();

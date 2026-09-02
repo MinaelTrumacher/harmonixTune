@@ -43,8 +43,7 @@ class TuningPresetSelector extends StatelessWidget {
 
             return TuningPresetChip(
               label: label,
-              onTap: () =>
-                  _openPicker(context, profiles, currentConfig),
+              onTap: () => _openPicker(context, profiles, currentConfig),
             );
           },
         );

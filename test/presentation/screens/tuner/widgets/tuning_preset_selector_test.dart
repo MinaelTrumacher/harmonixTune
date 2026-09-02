@@ -59,19 +59,19 @@ void main() {
   });
 
   testWidgets('affiche le nom du profil actif', (tester) async {
-    when(() => repo.watchAll()).thenAnswer(
-      (_) => Stream.value(const [_customProfile]),
-    );
+    when(
+      () => repo.watchAll(),
+    ).thenAnswer((_) => Stream.value(const [_customProfile]));
     when(() => bloc.state).thenReturn(
       const TunerListening(
         pitch: PitchResult(
-        frequencyHz: 110,
-        noteName: 'A',
-        octave: 2,
-        centsDeviation: 0,
-        confidence: 0.9,
-        state: TunerState.inTune,
-      ),
+          frequencyHz: 110,
+          noteName: 'A',
+          octave: 2,
+          centsDeviation: 0,
+          confidence: 0.9,
+          state: TunerState.inTune,
+        ),
         config: TuningConfiguration(presetId: 'p1'),
         intelliTunerEnabled: false,
       ),
@@ -86,9 +86,9 @@ void main() {
   testWidgets(
     'tap ouvre le sélecteur listant "Standard" + les profils sauvegardés',
     (tester) async {
-      when(() => repo.watchAll()).thenAnswer(
-        (_) => Stream.value(const [_customProfile]),
-      );
+      when(
+        () => repo.watchAll(),
+      ).thenAnswer((_) => Stream.value(const [_customProfile]));
       when(() => bloc.state).thenReturn(const TunerInitial());
 
       await tester.pumpWidget(wrap());
@@ -105,9 +105,9 @@ void main() {
   testWidgets(
     'sélectionner un profil déclenche ConfigChanged avec ses cordes',
     (tester) async {
-      when(() => repo.watchAll()).thenAnswer(
-        (_) => Stream.value(const [_customProfile]),
-      );
+      when(
+        () => repo.watchAll(),
+      ).thenAnswer((_) => Stream.value(const [_customProfile]));
       when(() => bloc.state).thenReturn(const TunerInitial());
 
       await tester.pumpWidget(wrap());
@@ -134,19 +134,19 @@ void main() {
   testWidgets(
     'revenir sur "Standard" déclenche ConfigChanged avec l\'accordage par défaut',
     (tester) async {
-      when(() => repo.watchAll()).thenAnswer(
-        (_) => Stream.value(const [_customProfile]),
-      );
+      when(
+        () => repo.watchAll(),
+      ).thenAnswer((_) => Stream.value(const [_customProfile]));
       when(() => bloc.state).thenReturn(
         const TunerListening(
           pitch: PitchResult(
-        frequencyHz: 110,
-        noteName: 'A',
-        octave: 2,
-        centsDeviation: 0,
-        confidence: 0.9,
-        state: TunerState.inTune,
-      ),
+            frequencyHz: 110,
+            noteName: 'A',
+            octave: 2,
+            centsDeviation: 0,
+            confidence: 0.9,
+            state: TunerState.inTune,
+          ),
           config: TuningConfiguration(
             stringNotes: ['D2', 'A2', 'D3', 'G3', 'B3', 'E4'],
             presetId: 'p1',

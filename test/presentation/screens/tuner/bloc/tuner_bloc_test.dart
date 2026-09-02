@@ -257,7 +257,10 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 20));
         b.add(
           const ConfigChanged(
-            TuningConfiguration(stringNotes: ['F2', 'A2', 'C3'], presetId: 'p1'),
+            TuningConfiguration(
+              stringNotes: ['F2', 'A2', 'C3'],
+              presetId: 'p1',
+            ),
           ),
         );
         await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -300,12 +303,10 @@ void main() {
     blocTest<TunerBloc, TunerDisplayState>(
       'n\'émet rien si appelé avant tout démarrage (TunerInitial)',
       build: makeBloc, // état initial TunerInitial
-      act: (b) => b.add(
-        const ConfigChanged(TuningConfiguration(presetId: 'p1')),
-      ),
+      act: (b) =>
+          b.add(const ConfigChanged(TuningConfiguration(presetId: 'p1'))),
       expect: () => <TunerDisplayState>[],
-      verify: (_) =>
-          verify(() => mockRepo.updateConfig(any())).called(1),
+      verify: (_) => verify(() => mockRepo.updateConfig(any())).called(1),
     );
   });
 

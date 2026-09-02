@@ -135,7 +135,8 @@ class ChordSmoother {
     for (final r in _window) {
       if (r.confidence < minConfidence) continue;
       familySums[r.familyName] = (familySums[r.familyName] ?? 0) + r.confidence;
-      familyFrameCounts[r.familyName] = (familyFrameCounts[r.familyName] ?? 0) + 1;
+      familyFrameCounts[r.familyName] =
+          (familyFrameCounts[r.familyName] ?? 0) + 1;
       nameSums[r.chordName] = (nameSums[r.chordName] ?? 0) + r.confidence;
       nameFrameCounts[r.chordName] = (nameFrameCounts[r.chordName] ?? 0) + 1;
       nameToFamily[r.chordName] = r.familyName;
@@ -188,7 +189,8 @@ class ChordSmoother {
     // persistance) — on retombe alors sur la moyenne de toute la famille.
     final winningNameSum = nameSums[winningName];
     final winningNameCount = nameFrameCounts[winningName];
-    final displayConfidence = (winningNameSum != null && winningNameCount != null)
+    final displayConfidence =
+        (winningNameSum != null && winningNameCount != null)
         ? winningNameSum / winningNameCount
         : familySums[bestFamily]! / familyFrameCounts[bestFamily]!;
 

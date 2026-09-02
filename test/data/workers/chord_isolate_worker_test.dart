@@ -113,19 +113,22 @@ void main() {
   });
 
   group('ChordIsolateWorker — pipeline', () {
-    test('1er hop (non silencieux) → aucun message (phase de chauffe)', () async {
-      final (:workerPort, :responses) = await spawnChordWorker();
-      final hops = buildContinuousHops([261.63, 329.63, 392.0], 1);
-      workerPort.send(
-        ChordAudioBufferMessage(TransferableTypedData.fromList([hops[0]])),
-      );
+    test(
+      '1er hop (non silencieux) → aucun message (phase de chauffe)',
+      () async {
+        final (:workerPort, :responses) = await spawnChordWorker();
+        final hops = buildContinuousHops([261.63, 329.63, 392.0], 1);
+        workerPort.send(
+          ChordAudioBufferMessage(TransferableTypedData.fromList([hops[0]])),
+        );
 
-      await expectLater(
-        responses.first.timeout(const Duration(milliseconds: 500)),
-        throwsA(isA<TimeoutException>()),
-      );
-      workerPort.send(const KillChordWorkerMessage());
-    });
+        await expectLater(
+          responses.first.timeout(const Duration(milliseconds: 500)),
+          throwsA(isA<TimeoutException>()),
+        );
+        workerPort.send(const KillChordWorkerMessage());
+      },
+    );
 
     test('accord Do majeur (C4,E4,G4) sur 2 hops → "C" détecté', () async {
       final (:workerPort, :responses) = await spawnChordWorker();

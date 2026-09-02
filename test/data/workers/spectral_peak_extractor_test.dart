@@ -74,10 +74,13 @@ void main() {
       expect(peaks.any((p) => p.frequencyHz == 0), isFalse);
     });
 
-    test('signal à 50 Hz (< 70 Hz) → aucun pic (ronflement secteur filtré)', () {
-      final peaks = makeExtractor().extract(sumOfSines([50.0]));
-      expect(peaks, isEmpty);
-    });
+    test(
+      'signal à 50 Hz (< 70 Hz) → aucun pic (ronflement secteur filtré)',
+      () {
+        final peaks = makeExtractor().extract(sumOfSines([50.0]));
+        expect(peaks, isEmpty);
+      },
+    );
 
     test('signal à 4000 Hz (> 3000 Hz) → aucun pic (souffle filtré)', () {
       final peaks = makeExtractor().extract(sumOfSines([4000.0]));
@@ -85,44 +88,55 @@ void main() {
     });
   });
 
-  group('SpectralPeakExtractor — limitation maxPeaks (US3, filtrage harmonique)', () {
-    // 6 fondamentales d'amplitude décroissante — simule une guitare à 6
-    // cordes dont le résidu harmonique (plus faible) doit être écarté.
-    const freqs = [200.0, 300.0, 400.0, 500.0, 600.0, 700.0];
-    const amplitudes = [0.5, 0.4, 0.3, 0.2, 0.1, 0.05];
+  group(
+    'SpectralPeakExtractor — limitation maxPeaks (US3, filtrage harmonique)',
+    () {
+      // 6 fondamentales d'amplitude décroissante — simule une guitare à 6
+      // cordes dont le résidu harmonique (plus faible) doit être écarté.
+      const freqs = [200.0, 300.0, 400.0, 500.0, 600.0, 700.0];
+      const amplitudes = [0.5, 0.4, 0.3, 0.2, 0.1, 0.05];
 
-    Float64List sixTones() {
-      final out = Float64List(fftSize);
-      for (int i = 0; i < fftSize; i++) {
-        double sample = 0.0;
-        for (int k = 0; k < freqs.length; k++) {
-          sample += amplitudes[k] * sin(2 * pi * freqs[k] * i / sampleRate);
+      Float64List sixTones() {
+        final out = Float64List(fftSize);
+        for (int i = 0; i < fftSize; i++) {
+          double sample = 0.0;
+          for (int k = 0; k < freqs.length; k++) {
+            sample += amplitudes[k] * sin(2 * pi * freqs[k] * i / sampleRate);
+          }
+          out[i] = sample;
         }
-        out[i] = sample;
+        return out;
       }
-      return out;
-    }
 
-    bool hasPeakNear(List<SpectralPeak> peaks, double target) =>
-        peaks.any((p) => (p.frequencyHz - target).abs() < 5.0);
+      bool hasPeakNear(List<SpectralPeak> peaks, double target) =>
+          peaks.any((p) => (p.frequencyHz - target).abs() < 5.0);
 
-    test('maxPeaks=null (par défaut) → tous les pics conservés', () {
-      final peaks = makeExtractor().extract(sixTones());
-      expect(peaks.length, greaterThanOrEqualTo(6));
-    });
+      test('maxPeaks=null (par défaut) → tous les pics conservés', () {
+        final peaks = makeExtractor().extract(sixTones());
+        expect(peaks.length, greaterThanOrEqualTo(6));
+      });
 
-    test('maxPeaks=3 → ne garde que les 3 pics les plus puissants', () {
-      final peaks = SpectralPeakExtractor(
-        sampleRate: sampleRate,
-        fftSize: fftSize,
-        maxPeaks: 3,
-      ).extract(sixTones());
+      test('maxPeaks=3 → ne garde que les 3 pics les plus puissants', () {
+        final peaks = SpectralPeakExtractor(
+          sampleRate: sampleRate,
+          fftSize: fftSize,
+          maxPeaks: 3,
+        ).extract(sixTones());
 
-      expect(peaks, hasLength(3));
-      expect(hasPeakNear(peaks, 200.0), isTrue, reason: 'le plus fort doit rester');
-      expect(hasPeakNear(peaks, 300.0), isTrue);
-      expect(hasPeakNear(peaks, 400.0), isTrue);
-      expect(hasPeakNear(peaks, 700.0), isFalse, reason: 'le plus faible doit être écarté');
-    });
-  });
+        expect(peaks, hasLength(3));
+        expect(
+          hasPeakNear(peaks, 200.0),
+          isTrue,
+          reason: 'le plus fort doit rester',
+        );
+        expect(hasPeakNear(peaks, 300.0), isTrue);
+        expect(hasPeakNear(peaks, 400.0), isTrue);
+        expect(
+          hasPeakNear(peaks, 700.0),
+          isFalse,
+          reason: 'le plus faible doit être écarté',
+        );
+      });
+    },
+  );
 }

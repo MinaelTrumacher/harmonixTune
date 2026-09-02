@@ -46,10 +46,22 @@ void main() {
         'B',
       ];
       for (final root in roots) {
-        expect(ChordTemplateLibrary.templates.map((t) => t.name), contains(root)); // majeur
-        expect(ChordTemplateLibrary.templates.map((t) => t.name), contains('${root}m'));
-        expect(ChordTemplateLibrary.templates.map((t) => t.name), contains('${root}7'));
-        expect(ChordTemplateLibrary.templates.map((t) => t.name), contains('${root}maj7'));
+        expect(
+          ChordTemplateLibrary.templates.map((t) => t.name),
+          contains(root),
+        ); // majeur
+        expect(
+          ChordTemplateLibrary.templates.map((t) => t.name),
+          contains('${root}m'),
+        );
+        expect(
+          ChordTemplateLibrary.templates.map((t) => t.name),
+          contains('${root}7'),
+        );
+        expect(
+          ChordTemplateLibrary.templates.map((t) => t.name),
+          contains('${root}maj7'),
+        );
       }
     });
 
@@ -123,15 +135,12 @@ void main() {
       expect(result.confidence, 0.0);
     });
 
-    test(
-      'ambiguïté relatif majeur/mineur (C vs Am) : cosine ≈ 0.667 — '
-      'justifie chordMinConfidence = 0.65',
-      () {
-        final c = _byName('C');
-        final am = _byName('Am');
-        expect(_cosine(c.vector, am.vector), closeTo(2 / 3, 1e-9));
-      },
-    );
+    test('ambiguïté relatif majeur/mineur (C vs Am) : cosine ≈ 0.667 — '
+        'justifie chordMinConfidence = 0.65', () {
+      final c = _byName('C');
+      final am = _byName('Am');
+      expect(_cosine(c.vector, am.vector), closeTo(2 / 3, 1e-9));
+    });
   });
 
   // ── Contamination harmonique réelle (diagnostic guitare, cf. échange US3) ──
@@ -144,56 +153,47 @@ void main() {
   // préférer la lecture la plus simple.
 
   group('ChordTemplateLibrary — contamination harmonique (pics réels)', () {
-    test(
-      'accord C majeur pollué à 20% sur la 7e mineure (résidu du 7e '
-      'harmonique) → reste "C", pas "C7"',
-      () {
-        final chroma = List<double>.filled(12, 0.0);
-        chroma[0] = 1.0; // C (fondamentale)
-        chroma[4] = 1.0; // E
-        chroma[7] = 1.0; // G
-        chroma[10] = 0.2; // Bb — résidu du 7e harmonique de C, E ou G
+    test('accord C majeur pollué à 20% sur la 7e mineure (résidu du 7e '
+        'harmonique) → reste "C", pas "C7"', () {
+      final chroma = List<double>.filled(12, 0.0);
+      chroma[0] = 1.0; // C (fondamentale)
+      chroma[4] = 1.0; // E
+      chroma[7] = 1.0; // G
+      chroma[10] = 0.2; // Bb — résidu du 7e harmonique de C, E ou G
 
-        final result = ChordTemplateLibrary.match(chroma);
-        expect(result.chordName, 'C');
-      },
-    );
+      final result = ChordTemplateLibrary.match(chroma);
+      expect(result.chordName, 'C');
+    });
 
-    test(
-      'accord Do mineur pollué à 20% sur la tierce majeure (résidu du 5e '
-      'harmonique) → reste "Cm", pas "C"',
-      () {
-        final chroma = List<double>.filled(12, 0.0);
-        chroma[0] = 1.0; // C (fondamentale)
-        chroma[3] = 1.0; // Eb (tierce mineure)
-        chroma[7] = 1.0; // G
-        chroma[4] = 0.2; // E — résidu du 5e harmonique de la fondamentale C
+    test('accord Do mineur pollué à 20% sur la tierce majeure (résidu du 5e '
+        'harmonique) → reste "Cm", pas "C"', () {
+      final chroma = List<double>.filled(12, 0.0);
+      chroma[0] = 1.0; // C (fondamentale)
+      chroma[3] = 1.0; // Eb (tierce mineure)
+      chroma[7] = 1.0; // G
+      chroma[4] = 0.2; // E — résidu du 5e harmonique de la fondamentale C
 
-        final result = ChordTemplateLibrary.match(chroma);
-        expect(result.chordName, 'Cm');
-      },
-    );
+      final result = ChordTemplateLibrary.match(chroma);
+      expect(result.chordName, 'Cm');
+    });
 
-    test(
-      'à contamination plus forte (50% sur la 7e mineure), le score brut '
-      'favorise déjà "C7" — c\'est exactement le cas que ChordSmoother '
-      'doit trancher sur la durée, pas cette couche',
-      () {
-        final chroma = List<double>.filled(12, 0.0);
-        chroma[0] = 1.0;
-        chroma[4] = 1.0;
-        chroma[7] = 1.0;
-        chroma[10] = 0.5;
+    test('à contamination plus forte (50% sur la 7e mineure), le score brut '
+        'favorise déjà "C7" — c\'est exactement le cas que ChordSmoother '
+        'doit trancher sur la durée, pas cette couche', () {
+      final chroma = List<double>.filled(12, 0.0);
+      chroma[0] = 1.0;
+      chroma[4] = 1.0;
+      chroma[7] = 1.0;
+      chroma[10] = 0.5;
 
-        final result = ChordTemplateLibrary.match(chroma);
-        expect(
-          result.chordName,
-          'C7',
-          reason:
-              'cette couche ne fait plus d\'arbitrage — confirme que la '
-              'persistance sur la fenêtre (ChordSmoother) est nécessaire',
-        );
-      },
-    );
+      final result = ChordTemplateLibrary.match(chroma);
+      expect(
+        result.chordName,
+        'C7',
+        reason:
+            'cette couche ne fait plus d\'arbitrage — confirme que la '
+            'persistance sur la fenêtre (ChordSmoother) est nécessaire',
+      );
+    });
   });
 }
