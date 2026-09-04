@@ -116,4 +116,29 @@ void main() {
       verify(() => bloc.add(const StringSelected(null))).called(1);
     },
   );
+
+  testWidgets(
+    'reflète la config d\'un preset même avant toute détection de hauteur '
+    '(TunerInitial) — sinon un preset appliqué avant le premier son capté '
+    'restait invisible',
+    (tester) async {
+      when(() => bloc.state).thenReturn(
+        const TunerInitial(
+          config: TuningConfiguration(
+            stringNotes: ['F2', 'A2', 'C3', 'G3', 'C3', 'E4'],
+            presetId: 'p1',
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(wrap());
+
+      for (final note in ['F2', 'A2', 'C3', 'G3', 'C3', 'E4']) {
+        expect(find.text(note), findsWidgets);
+      }
+      expect(find.text('E2'), findsNothing);
+      expect(find.text('D3'), findsNothing);
+      expect(find.text('B3'), findsNothing);
+    },
+  );
 }

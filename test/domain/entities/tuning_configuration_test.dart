@@ -13,6 +13,7 @@ void main() {
       expect(c.targetString, isNull);
       expect(c.intelliTunerActive, isFalse);
       expect(c.instrumentType, InstrumentType.guitar);
+      expect(c.presetId, isNull);
     });
 
     test(
@@ -59,6 +60,15 @@ void main() {
         InstrumentType.bass,
       );
     });
+
+    test('copyWith presetId', () {
+      expect(base.copyWith(presetId: 'p1').presetId, 'p1');
+    });
+
+    test('clearPresetId remet presetId à null', () {
+      final withPreset = base.copyWith(presetId: 'p1');
+      expect(withPreset.copyWith(clearPresetId: true).presetId, isNull);
+    });
   });
 
   group('TuningConfiguration — égalité (==)', () {
@@ -83,6 +93,10 @@ void main() {
 
     test('différence de stringNotes brise l\'égalité', () {
       expect(a, isNot(equals(a.copyWith(stringNotes: ['E2', 'A2']))));
+    });
+
+    test('différence de presetId brise l\'égalité', () {
+      expect(a, isNot(equals(a.copyWith(presetId: 'p1'))));
     });
 
     test('même objet est égal à lui-même', () {

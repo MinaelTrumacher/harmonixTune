@@ -9,7 +9,17 @@ sealed class TunerDisplayState extends Equatable {
 }
 
 final class TunerInitial extends TunerDisplayState {
-  const TunerInitial();
+  const TunerInitial({this.config = const TuningConfiguration()});
+
+  // Permet aux widgets pilotés par la config (sélecteur de cordes, de
+  // preset) de refléter la config courante même avant toute détection de
+  // hauteur — sans ce champ, un changement de preset appliqué avant que le
+  // micro n'ait capté un premier son restait invisible à l'écran (la config
+  // interne du BLoC était pourtant à jour).
+  final TuningConfiguration config;
+
+  @override
+  List<Object?> get props => [config];
 }
 
 final class TunerListening extends TunerDisplayState {

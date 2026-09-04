@@ -92,7 +92,7 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
         await _subscription?.cancel();
         _subscription = null;
         await _audioRepository.stop();
-        if (!isClosed) emit(const TunerInitial());
+        if (!isClosed) emit(TunerInitial(config: _config));
       });
 
   void _onPitchReceived(PitchReceived event, Emitter<TunerDisplayState> emit) {
@@ -123,12 +123,36 @@ class TunerBloc extends Bloc<TunerEvent, TunerDisplayState>
     emit(TunerPermissionDeniedState(isPermanent: event.isPermanent));
   }
 
+  // Changement de profil d'accordage (Standard <-> preset personnalisé) :
+  // met à jour la config de l'Isolate déjà en cours via `updateConfig` — pas
+  // de `_subscribeToRepo()` (qui couperait/relancerait l'Isolate et le
+  // micro). Le musicien doit pouvoir changer de preset "sans coupure".
+  //
+  // Émet un nouvel état même hors TunerListening (ex. TunerInitial, avant
+  // toute détection de hauteur) : sans ça, le sélecteur de cordes/de preset
+  // retombe sur sa config par défaut codée en dur tant qu'aucun son n'a
+  // encore été capté, alors que la config interne est pourtant déjà à jour.
   Future<void> _onConfigChanged(
     ConfigChanged event,
     Emitter<TunerDisplayState> emit,
   ) async {
     _config = event.config;
-    await _subscribeToRepo();
+    _intelliTunerEnabled = _config.intelliTunerActive;
+    await _audioRepository.updateConfig(_config);
+    if (isClosed) return;
+
+    final current = state;
+    if (current is TunerListening) {
+      emit(
+        TunerListening(
+          pitch: current.pitch,
+          config: _config,
+          intelliTunerEnabled: _intelliTunerEnabled,
+        ),
+      );
+    } else if (current is TunerInitial) {
+      emit(TunerInitial(config: _config));
+    }
   }
 
   void _onStringSelected(

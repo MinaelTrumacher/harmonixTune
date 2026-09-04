@@ -246,6 +246,78 @@ void main() {
     );
   });
 
+  // ── ConfigChanged (changement de preset — doit rester sans coupure) ───────
+
+  group('ConfigChanged', () {
+    blocTest<TunerBloc, TunerDisplayState>(
+      'appelle updateConfig() sans relancer streamPitch() (pas de coupure)',
+      build: makeBloc,
+      act: (b) async {
+        b.add(const StartTuner());
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        b.add(
+          const ConfigChanged(
+            TuningConfiguration(
+              stringNotes: ['F2', 'A2', 'C3'],
+              presetId: 'p1',
+            ),
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      },
+      verify: (_) {
+        verify(() => mockRepo.streamPitch(any())).called(1);
+        verify(
+          () => mockRepo.updateConfig(
+            const TuningConfiguration(
+              stringNotes: ['F2', 'A2', 'C3'],
+              presetId: 'p1',
+            ),
+          ),
+        ).called(1);
+      },
+    );
+
+    blocTest<TunerBloc, TunerDisplayState>(
+      'émet TunerListening avec la nouvelle config si déjà en écoute',
+      build: makeBloc,
+      seed: () => TunerListening(
+        pitch: makePitch(),
+        config: const TuningConfiguration(),
+        intelliTunerEnabled: false,
+      ),
+      act: (b) => b.add(
+        const ConfigChanged(
+          TuningConfiguration(stringNotes: ['F2', 'A2', 'C3'], presetId: 'p1'),
+        ),
+      ),
+      expect: () => [
+        isA<TunerListening>().having(
+          (s) => s.config.presetId,
+          'config.presetId',
+          'p1',
+        ),
+      ],
+    );
+
+    blocTest<TunerBloc, TunerDisplayState>(
+      'émet TunerInitial avec la nouvelle config si appelé avant tout '
+      'démarrage — sinon le sélecteur de preset resterait sur l\'accordage '
+      'standard tant qu\'aucun son n\'a été capté',
+      build: makeBloc, // état initial TunerInitial
+      act: (b) =>
+          b.add(const ConfigChanged(TuningConfiguration(presetId: 'p1'))),
+      expect: () => [
+        isA<TunerInitial>().having(
+          (s) => s.config.presetId,
+          'config.presetId',
+          'p1',
+        ),
+      ],
+      verify: (_) => verify(() => mockRepo.updateConfig(any())).called(1),
+    );
+  });
+
   // ── PermissionDenied ──────────────────────────────────────────────────────
 
   group('PermissionDenied', () {
