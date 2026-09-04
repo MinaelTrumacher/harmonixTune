@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../domain/entities/tuning_configuration.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_text_styles.dart';
 import '../bloc/tuner_bloc.dart';
 import '../bloc/tuner_event.dart';
 import '../bloc/tuner_state.dart';
+
+// Config courante, qu'elle porte sur TunerListening (une hauteur a déjà été
+// détectée) ou TunerInitial (pas encore, ex. juste après un changement de
+// preset avant que le micro n'ait capté un premier son) — sans ce repli sur
+// TunerInitial, un changement de preset appliqué trop tôt restait invisible.
+TuningConfiguration? _configOf(TunerDisplayState state) => switch (state) {
+  TunerListening(:final config) => config,
+  TunerInitial(:final config) => config,
+  _ => null,
+};
 
 class StringSelectorWidget extends StatelessWidget {
   const StringSelectorWidget({super.key});
@@ -13,14 +24,9 @@ class StringSelectorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TunerBloc, TunerDisplayState>(
-      buildWhen: (prev, next) {
-        if (prev.runtimeType != next.runtimeType) return true;
-        if (prev is! TunerListening || next is! TunerListening) return true;
-        // TuningConfiguration.== est correct — rebuild uniquement si la config change.
-        return prev.config != next.config;
-      },
+      buildWhen: (prev, next) => _configOf(prev) != _configOf(next),
       builder: (_, state) {
-        final config = state is TunerListening ? state.config : null;
+        final config = _configOf(state);
         final strings =
             config?.stringNotes ?? const ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
         final selected = config?.targetString;

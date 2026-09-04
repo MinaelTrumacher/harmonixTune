@@ -69,6 +69,17 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/)
     chromagramme avec mise en évidence des notes actives.
 
 ### Corrigé
+- **Preset sélectionné mais cordes non mises à jour sur le Tuner** — en
+  sélectionnant un profil personnalisé avant qu'une hauteur n'ait déjà été
+  détectée par le micro (ex. juste après avoir rouvert l'onglet Tuner), le
+  sélecteur de cordes restait affiché sur l'accordage standard bien que la
+  config interne du `TunerBloc` soit correctement mise à jour. Cause :
+  `TunerInitial` (l'état avant toute détection) ne portait aucune
+  `TuningConfiguration`, donc `StringSelectorWidget`/`TuningPresetSelector`
+  retombaient sur leur valeur par défaut codée en dur tant que l'état
+  restait `TunerInitial`. `TunerInitial` porte désormais sa propre
+  `config`, mise à jour par `TunerBloc._onConfigChanged` même hors
+  `TunerListening`.
 - **US3 — Contamination harmonique et flottement/disparition de l'accord
   affiché**, constatés lors d'un premier test sur guitare réelle (cf. §11
   de `docs/STRATEGIE_DETECTION_ACCORDS.md`) :

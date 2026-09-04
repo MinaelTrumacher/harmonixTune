@@ -301,11 +301,19 @@ void main() {
     );
 
     blocTest<TunerBloc, TunerDisplayState>(
-      'n\'émet rien si appelé avant tout démarrage (TunerInitial)',
+      'émet TunerInitial avec la nouvelle config si appelé avant tout '
+      'démarrage — sinon le sélecteur de preset resterait sur l\'accordage '
+      'standard tant qu\'aucun son n\'a été capté',
       build: makeBloc, // état initial TunerInitial
       act: (b) =>
           b.add(const ConfigChanged(TuningConfiguration(presetId: 'p1'))),
-      expect: () => <TunerDisplayState>[],
+      expect: () => [
+        isA<TunerInitial>().having(
+          (s) => s.config.presetId,
+          'config.presetId',
+          'p1',
+        ),
+      ],
       verify: (_) => verify(() => mockRepo.updateConfig(any())).called(1),
     );
   });

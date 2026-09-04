@@ -16,6 +16,16 @@ import 'tuning_preset_chip.dart';
 /// interrompre l'écoute en cours — `ConfigChanged` passe par
 /// `AudioRepository.updateConfig` (pas de redémarrage de l'Isolate/du
 /// micro), cf. `TunerBloc._onConfigChanged`.
+// Config courante, qu'elle porte sur TunerListening (une hauteur a déjà été
+// détectée) ou TunerInitial (pas encore) — sans ce repli sur TunerInitial,
+// sélectionner un preset avant que le micro n'ait capté un premier son
+// laissait le sélecteur (et le reste de l'écran) sur l'accordage standard.
+TuningConfiguration _configOf(TunerDisplayState state) => switch (state) {
+  TunerListening(:final config) => config,
+  TunerInitial(:final config) => config,
+  _ => TuningConfiguration.standard,
+};
+
 class TuningPresetSelector extends StatelessWidget {
   const TuningPresetSelector({super.key, required this.repository});
 
@@ -24,16 +34,10 @@ class TuningPresetSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TunerBloc, TunerDisplayState>(
-      buildWhen: (prev, next) {
-        if (prev is! TunerListening || next is! TunerListening) {
-          return prev.runtimeType != next.runtimeType;
-        }
-        return prev.config.presetId != next.config.presetId;
-      },
+      buildWhen: (prev, next) =>
+          _configOf(prev).presetId != _configOf(next).presetId,
       builder: (context, state) {
-        final currentConfig = state is TunerListening
-            ? state.config
-            : TuningConfiguration.standard;
+        final currentConfig = _configOf(state);
 
         return StreamBuilder<List<TuningProfile>>(
           stream: repository.watchAll(),
