@@ -49,6 +49,14 @@ void main() {
     });
   });
 
+  group('NoteFrequencyConverter — chromaticScale (convention MIDI C=0)', () {
+    test('12 noms, commence par C, réutilisé par le chromagramme (US3)', () {
+      expect(NoteFrequencyConverter.chromaticScale, hasLength(12));
+      expect(NoteFrequencyConverter.chromaticScale.first, 'C');
+      expect(NoteFrequencyConverter.chromaticScale.last, 'B');
+    });
+  });
+
   group('NoteFrequencyConverter — formats invalides', () {
     test('retourne null sans octave', () {
       expect(NoteFrequencyConverter.toFrequencyHz('E'), isNull);

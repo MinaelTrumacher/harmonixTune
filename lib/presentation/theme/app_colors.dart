@@ -14,6 +14,6 @@ abstract final class AppColors {
   static const Color tooHigh = Color(0xFFF06050);
 
   static const Color textPrimary = Color(0xFFF0F0F5);
-  static const Color textSecondary = Color(0xFF7A7A9A);
+  static const Color textSecondary = Color(0xFF9494B8);
   static const Color textDisabled = Color(0xFF3A3A52);
 }
